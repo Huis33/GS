@@ -8,6 +8,7 @@ export const loginUser = async (email, password) => {
         const user = userCredential.user;
 
         // Fetch user data from Firestore users collection
+        const userDocRef = doc(db, "users", user.uid); 
         const userDoc = await getDoc(doc(db, "users", user.uid));
 
         if (!userDoc.exists()) {
