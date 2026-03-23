@@ -1,32 +1,29 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    StyleSheet,
-    Alert,
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Platform,
-    Image,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 
 // Imports from your setup
-import { auth } from '../../firebaseConfig';
-import { loginUser } from '../services/AuthService';
-import { useLanguage } from '../context/LanguageContext';
+//import { useLanguage } from '../context/LanguageContext';
+import { loginUser } from '../service/AuthService';
 
 export default function LoginScreen() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setPasswordVisible] = useState(false);
     const [loading, setLoading] = useState(false);
-
-    const { t } = useLanguage();
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -89,13 +86,13 @@ export default function LoginScreen() {
                         style={styles.logo}
                         resizeMode="contain"
                     />
-                    <Text style={styles.welcomeText}>{t('welcome') || 'Welcome'}</Text>
+                    <Text style={styles.welcomeText}>{'Welcome'}</Text>
                 </View>
 
                 {/* Input Fields */}
                 <View style={styles.form}>
                     <View style={styles.inputWrapper}>
-                        <Text style={styles.label}>{t('email') || 'Email'}</Text>
+                        <Text style={styles.label}>{'Email'}</Text>
                         <TextInput
                             style={styles.input}
                             value={email}
@@ -107,7 +104,7 @@ export default function LoginScreen() {
                     </View>
 
                     <View style={styles.inputWrapper}>
-                        <Text style={styles.label}>{t('password') || 'Password'}</Text>
+                        <Text style={styles.label}>{'Password'}</Text>
                         <View style={styles.passwordContainer}>
                             <TextInput
                                 style={styles.passwordInput}
@@ -128,7 +125,7 @@ export default function LoginScreen() {
                             style={styles.forgotBtn}
                             onPress={() => router.push('/forgot-password')}
                         >
-                            <Text style={styles.forgotText}>{t('forgotPass') || 'Forgot password?'}</Text>
+                            <Text style={styles.forgotText}>{'Forgot password?'}</Text>
                         </TouchableOpacity>
                     </View>
 
@@ -141,7 +138,7 @@ export default function LoginScreen() {
                         {loading ? (
                             <ActivityIndicator color="#fff" />
                         ) : (
-                            <Text style={styles.loginButtonText}>{t('loginBtn') || 'Log In'}</Text>
+                            <Text style={styles.loginButtonText}>{'Log In'}</Text>
                         )}
                     </TouchableOpacity>
                 </View>
