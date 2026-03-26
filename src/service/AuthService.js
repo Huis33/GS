@@ -7,8 +7,9 @@ export const loginUser = async (email, password) => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Fetch user data from Firestore users collection
-        const userDoc = await getDoc(doc(db, "users", user.uid));
+        // Fetch user data from Firestore user collection
+        const userDocRef = doc(db, "user", user.uid); 
+        const userDoc = await getDoc(doc(db, "user", user.uid));
 
         if (!userDoc.exists()) {
             throw { code: 'auth/user-not-found', message: 'User record not found in database.' };

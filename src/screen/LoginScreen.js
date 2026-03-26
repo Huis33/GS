@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Imports from your setup
-//import { useLanguage } from '../context/LanguageContext';
+import { auth } from '../../firebaseConfig';
 import { loginUser } from '../service/AuthService';
 
 export default function LoginScreen() {

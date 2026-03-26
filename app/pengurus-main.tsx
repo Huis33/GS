@@ -5,7 +5,7 @@ import PengurusMainPage from '../src/screen/PengurusMainPage.js';
 export default function Page() {
     return (
         <>
-            <Stack.Screen options={{ title: 'Jurutera Main Page', headerBackTitle: 'Back', headerShown: false }} />
+            <Stack.Screen options={{ title: 'Pengurus Main Page', headerBackTitle: 'Back', headerShown: false }} />
             <PengurusMainPage />
         </>
     );
