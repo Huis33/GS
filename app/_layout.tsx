@@ -14,9 +14,8 @@ export default function RootLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       {/* This is your Login Page (no tabs) */}
       <Stack.Screen name="index" />
-
-      {/* This is your Dashboard Group (with tabs) */}
-      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="(jurutera)" />
+      <Stack.Screen name="jurutera-main" />
     </Stack>
   );
 }

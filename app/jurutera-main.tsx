@@ -1,12 +1,6 @@
-import { Stack } from 'expo-router';
-import React from 'react';
-import JuruteraMainPage from '../src/screen/JuruteraMainPage.js';
+import { Redirect } from 'expo-router';
 
 export default function Page() {
-    return (
-        <>
-            <Stack.Screen options={{ title: 'Jurutera Main Page', headerBackTitle: 'Back', headerShown: false }} />
-            <JuruteraMainPage />
-        </>
-    );
+    // Casting to 'any' tells TypeScript: "Trust me, this path exists"
+    return <Redirect href={"/(jurutera)/(tabs)" as any} />;
 }
