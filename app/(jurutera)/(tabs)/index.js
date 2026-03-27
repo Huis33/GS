@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Calendar } from 'react-native-calendars';
+import { useUser } from '../../../src/context/UserContext';
 
 export default function SchedulePage() {
+    const { userData } = useUser();
     const [currentDate, setCurrentDate] = useState('');
 
     useEffect(() => {
@@ -71,5 +73,15 @@ const styles = StyleSheet.create({
     progressRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
     progressText: { fontSize: 12, fontWeight: '600' },
     progressBar: { height: 6, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 3 },
-    progressFill: { height: 6, backgroundColor: '#10B981', borderRadius: 3 }
+    progressFill: { height: 6, backgroundColor: '#10B981', borderRadius: 3 },
+    welcomeContainer: {
+        paddingHorizontal: 20,
+        marginTop: 10,
+        marginBottom: 10,
+    },
+    welcomeText: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: '#333',
+    },
 });

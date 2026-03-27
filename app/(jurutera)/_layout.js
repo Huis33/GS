@@ -3,64 +3,34 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Drawer } from 'expo-router/drawer';
 import { DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet, Alert } from 'react-native';
-import { auth } from '../../firebaseConfig'; // Ensure this path is correct
-import { signOut } from 'firebase/auth';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { useNavigation, router } from 'expo-router';
+import { DrawerActions } from '@react-navigation/native';
+import { useUser } from '../../src/context/UserContext';
 
-// Custom Sidebar Component
 function CustomDrawerContent(props) {
-    const handleLogout = async () => {
-        Alert.alert(
-            "Logout",
-            "Are you sure you want to log out?",
-            [
-                {
-                    text: "Cancel",
-                    style: "cancel"
-                },
-                {
-                    text: "Logout",
-                    style: "destructive",
-                    onPress: async () => {
-                        try {
-                            // 1. Sign out from Firebase
-                            await signOut(auth);
+    const { userData } = useUser();
 
-                            // 2. Clear navigation and go to app/index.tsx
-                            router.replace('/');
-                        } catch (error) {
-                            console.error("Logout Error:", error);
-                            Alert.alert("Error", "Failed to log out. Please try again.");
-                        }
-                    }
-                }
-            ]
-        );
+    const handleLogout = () => {
+        props.navigation.closeDrawer();
+        router.push('/logout-confirm');
     };
 
     return (
         <DrawerContentScrollView {...props} contentContainerStyle={{ flex: 1 }}>
-            {/* Sidebar Header */}
             <View style={styles.drawerHeader}>
                 <Ionicons name="person-circle" size={60} color="#6389DA" />
-                <Text style={styles.userName}>Alice Tan</Text>
-                <Text style={styles.userRole}>Jurutera</Text>
+                <Text style={styles.userName}>{userData?.name || 'User'}</Text>
+                <Text style={styles.userRole}>{userData?.role || 'Jurutera'}</Text>
             </View>
-
-            {/* Navigation Links (Home & Profile) */}
             <View style={{ flex: 1 }}>
                 <DrawerItemList {...props} />
             </View>
-
-            {/* Logout Button at Bottom */}
             <View style={styles.logoutSection}>
                 <DrawerItem
                     label="Log Out"
                     onPress={handleLogout}
-                    icon={({ color, size }) => (
-                        <Ionicons name="log-out-outline" color="#FF4444" size={size} />
-                    )}
+                    icon={({ size }) => <Ionicons name="log-out-outline" color="#FF4444" size={size} />}
                     labelStyle={{ color: '#FF4444', fontWeight: 'bold' }}
                 />
             </View>
@@ -69,37 +39,46 @@ function CustomDrawerContent(props) {
 }
 
 export default function JuruteraDrawerLayout() {
+    const { userData } = useUser();
+
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
                 drawerContent={(props) => <CustomDrawerContent {...props} />}
-                screenOptions={{
+                screenOptions={({ navigation }) => ({ // Access navigation from here instead of useNavigation()
                     headerShown: true,
-                    headerTintColor: '#000',
+                    headerTitleAlign: 'center',
+                    headerShadowVisible: false,
+                    headerStyle: { backgroundColor: '#FFFFFF' },
+                    headerLeft: () => (
+                        <TouchableOpacity
+                            style={{ marginLeft: 20 }}
+                            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+                        >
+                            <Ionicons name="menu-outline" size={30} color="black" />
+                        </TouchableOpacity>
+                    ),
+                    headerTitle: () => (
+                        <Text style={styles.headerWelcome}>
+                            Welcome, {userData?.name || 'User'}
+                        </Text>
+                    ),
                     drawerActiveTintColor: '#6389DA',
-                }}
+                })}
             >
-                {/* Points to app/(jurutera)/(tabs)/index.js */}
                 <Drawer.Screen
                     name="(tabs)"
                     options={{
                         drawerLabel: 'Edit Profile',
-                        title: 'Schedule',
-                        drawerIcon: ({ color, size }) => (
-                            <Ionicons name="brush" color={color} size={size} />
-                        )
+                        drawerIcon: ({ color, size }) => <Ionicons name="brush" color={color} size={size} />
                     }}
                 />
-
-                {/* Points to app/(jurutera)/profile.js */}
                 <Drawer.Screen
                     name="profile"
                     options={{
                         drawerLabel: 'Profile',
-                        title: 'User Profile',
-                        drawerIcon: ({ color, size }) => (
-                            <Ionicons name="person-outline" color={color} size={size} />
-                        )
+                        headerTitle: 'User Profile',
+                        drawerIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />
                     }}
                 />
             </Drawer>
@@ -122,5 +101,12 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: '#EEE',
         marginBottom: 20,
-    }
+    },
+    headerWelcome: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: '#000',
+        // Ensures the font looks clean on both iOS and Android
+        fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
+    },
 });

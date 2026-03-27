@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -14,12 +14,11 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Imports from your setup
-import { auth } from '../../firebaseConfig';
 import { loginUser } from '../service/AuthService';
+import { useUser } from '../context/UserContext';
 
 export default function LoginScreen() {
+    const { setUserData } = useUser();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setPasswordVisible] = useState(false);
@@ -36,6 +35,7 @@ export default function LoginScreen() {
         try {
             // result contains { user, role, status } from your AuthService
             const result = await loginUser(email, password);
+            setUserData(result);
             const userRole = result.role;
 
             // Role-Based Navigation Logic
@@ -54,24 +54,26 @@ export default function LoginScreen() {
             console.error("Login Error:", error.code);
             let errorMessage = "Something went wrong. Please try again.";
 
-            // Specific error handling
-            switch (error.code) {
-                case 'auth/invalid-credential':
-                case 'auth/wrong-password':
-                case 'auth/user-not-found':
-                    errorMessage = "Invalid email or password. Please try again.";
-                    break;
-                case 'auth/too-many-requests':
-                    errorMessage = "Too many failed attempts. Account temporarily locked.";
-                    break;
-                default:
-                    errorMessage = error.message;
+            // Check if error.code exists (Firebase errors) or use error.message
+            if (error.code) {
+                switch (error.code) {
+                    case 'auth/invalid-credential':
+                    case 'auth/user-not-found':
+                        errorMessage = "Invalid email or password.";
+                        break;
+                    case 'auth/too-many-requests':
+                        errorMessage = "Too many attempts. Try again later.";
+                        break;
+                    default:
+                        errorMessage = error.message;
+                }
+            } else if (error.message) {
+                errorMessage = error.message;
             }
+
             Alert.alert("Login Failed", errorMessage);
-        } finally {
-            setLoading(false);
         }
-    };
+}
 
     return (
         <SafeAreaView style={styles.container}>

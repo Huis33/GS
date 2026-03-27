@@ -1,6 +1,11 @@
-import { Redirect } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 
 export default function Page() {
-    // Casting to 'any' tells TypeScript: "Trust me, this path exists"
-    return <Redirect href={"/(jurutera)/(tabs)" as any} />;
+    return (
+        <>
+            {/* Ensures this 'bridge' page is invisible while it redirects */}
+            <Stack.Screen options={{ headerShown: false }} />
+            <Redirect href={"/(jurutera)/(tabs)" as any} />
+        </>
+    );
 }
