@@ -1,12 +1,11 @@
-import { Stack } from 'expo-router';
-import React from 'react';
-import PMainPage from '../app/(pengurus)/PMainPage';
+import { Redirect, Stack } from 'expo-router';
 
 export default function Page() {
     return (
         <>
-            <Stack.Screen options={{ title: 'Pengurus Main Page', headerBackTitle: 'Back', headerShown: false }} />
-            <PMainPage />
+            {/* Ensures this 'bridge' page is invisible while it redirects */}
+            <Stack.Screen options={{ headerShown: false }} />
+            <Redirect href={"/(pengurus)/(tabs)" as any} />
         </>
     );
 }

@@ -4,7 +4,7 @@ import { Drawer } from 'expo-router/drawer';
 import { DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { router } from 'expo-router';
+import { useNavigation, router } from 'expo-router';
 import { DrawerActions } from '@react-navigation/native';
 import { useUser } from '../../src/context/UserContext';
 
@@ -21,7 +21,7 @@ function CustomDrawerContent(props) {
             <View style={styles.drawerHeader}>
                 <Ionicons name="person-circle" size={60} color="#6389DA" />
                 <Text style={styles.userName}>{userData?.name || 'User'}</Text>
-                <Text style={styles.userRole}>{userData?.role || 'Engineer'}</Text>
+                <Text style={styles.userRole}>{userData?.role || 'Operation Manager'}</Text>
             </View>
             <View style={{ flex: 1 }}>
                 <DrawerItemList {...props} />
@@ -38,7 +38,7 @@ function CustomDrawerContent(props) {
     );
 }
 
-export default function JuruteraDrawerLayout() {
+export default function OMDrawerLayout() {
     const { userData } = useUser();
 
     return (
@@ -67,10 +67,17 @@ export default function JuruteraDrawerLayout() {
                 })}
             >
                 <Drawer.Screen
-                    name="edit-profile"
+                    name="(tabs)"
                     options={{
-                        drawerLabel: 'Update Availability',
+                        drawerLabel: 'Edit Profile',
                         drawerIcon: ({ color, size }) => <Ionicons name="brush" color={color} size={size} />
+                    }}
+                />
+                <Drawer.Screen
+                    name="(tabs)"
+                    options={{
+                        drawerLabel: 'All Task',
+                        drawerIcon: ({ color, size }) => <Ionicons name="list" color={color} size={size} />
                     }}
                 />
                 <Drawer.Screen
@@ -88,8 +95,7 @@ export default function JuruteraDrawerLayout() {
 
 const styles = StyleSheet.create({
     drawerHeader: {
-        paddingVertical: 30,
-        paddingHorizontal: 20,
+        padding: 20,
         backgroundColor: '#F8F9FA',
         alignItems: 'center',
         borderBottomWidth: 1,
