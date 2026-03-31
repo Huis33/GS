@@ -15,13 +15,11 @@ export const loginUser = async (email, password) => {
             throw { code: 'auth/user-not-found', message: 'User record not found in database.' };
         }
 
-        const userData = userDoc.data();
+        const data = userDoc.data();
 
         return {
-            user,
-            name: userData.name,
-            role: userData.role, // "Jurutera", etc.
-            status: userData.status
+            ...data, 
+            user: user
         };
     } catch (error) {
         throw error;

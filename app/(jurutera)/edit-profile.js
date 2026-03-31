@@ -1,19 +1,17 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
     ScrollView,
-    Platform
+    StyleSheet,
+    Text,
+    TextInput,
+    View
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../../src/context/UserContext'; // 
 
 export default function EditProfileScreen() {
     const { userData } = useUser(); // 
-
+    console.log("Current User Data:", userData);
     const formatDOB = (dobValue) => {
         if (!dobValue) return 'Not Provided';
         // 1. Handle Firebase Timestamp (standard object with seconds/nanoseconds)
@@ -84,7 +82,7 @@ export default function EditProfileScreen() {
                         <Text style={styles.inputLabel}>Date of Birth</Text>
                         <TextInput
                             style={styles.readOnlyInput}
-                            value={formatDOB(userData?.user?.dob) || '456'} // Use the helper here
+                            value={formatDOB(userData?.dob) || '456'} // Use the helper here
                             editable={false}
                         />
                     </View>

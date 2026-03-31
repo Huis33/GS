@@ -14,8 +14,8 @@ import {
     View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { loginUser } from '../service/AuthService';
 import { useUser } from '../context/UserContext';
+import { loginUser } from '../service/AuthService';
 
 export default function LoginScreen() {
     const { setUserData } = useUser();
@@ -48,6 +48,8 @@ export default function LoginScreen() {
             } else {
                 // Fallback for unexpected roles
                 Alert.alert("Access Denied", "Your role is not authorized for this app.");
+                setLoading(false);
+
             }
 
         } catch (error) {
@@ -72,6 +74,7 @@ export default function LoginScreen() {
             }
 
             Alert.alert("Login Failed", errorMessage);
+            setLoading(false);
         }
 }
 
