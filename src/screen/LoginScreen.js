@@ -39,11 +39,11 @@ export default function LoginScreen() {
             const userRole = result.role;
 
             // Role-Based Navigation Logic
-            if (userRole === 'Jurutera') {
+            if (userRole === 'Engineer') {
                 router.replace('/jurutera-main');
-            } else if (userRole === 'Pengurus Operasi') {
+            } else if (userRole === 'OperationManager') {
                 router.replace('/pengurus-main');
-            } else if (userRole === 'Penyelaras Servis') {
+            } else if (userRole === 'ServiceCoordinator') {
                 router.replace('/penyelaras-main');
             } else {
                 // Fallback for unexpected roles

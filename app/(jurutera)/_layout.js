@@ -18,14 +18,19 @@ function CustomDrawerContent(props) {
 
     return (
         <DrawerContentScrollView {...props} contentContainerStyle={{ flex: 1 }}>
+            {/* 1. Profile Header Section */}
             <View style={styles.drawerHeader}>
                 <Ionicons name="person-circle" size={60} color="#6389DA" />
                 <Text style={styles.userName}>{userData?.name || 'User'}</Text>
                 <Text style={styles.userRole}>{userData?.role || 'Engineer'}</Text>
             </View>
+
+            {/* 2. Main Navigation Items (Filtered via Screen Options instead of JS logic) */}
             <View style={{ flex: 1 }}>
                 <DrawerItemList {...props} />
             </View>
+
+            {/* 3. Bottom Logout Section */}
             <View style={styles.logoutSection}>
                 <DrawerItem
                     label="Log Out"
@@ -45,7 +50,7 @@ export default function JuruteraDrawerLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
                 drawerContent={(props) => <CustomDrawerContent {...props} />}
-                screenOptions={({ navigation }) => ({ // Access navigation from here instead of useNavigation()
+                screenOptions={({ navigation }) => ({
                     headerShown: true,
                     headerTitleAlign: 'center',
                     headerShadowVisible: false,
@@ -66,21 +71,33 @@ export default function JuruteraDrawerLayout() {
                     drawerActiveTintColor: '#6389DA',
                 })}
             >
+                {/* HIDE THE TABS FROM DRAWER MENU */}
+                <Drawer.Screen
+                    name="(tabs)"
+                    options={{
+                        drawerItemStyle: { display: 'none' }, // This hides it from the sidebar list
+                        //headerShown: false,                  // Keeps the tab navigator's own header (if any)
+                    }}
+                />
+
+                {/* SHOW EDIT PROFILE */}
                 <Drawer.Screen
                     name="edit-profile"
-                    options={{
+                    options={({ navigation }) => ({
                         drawerLabel: 'Update Availability',
-                        drawerIcon: ({ color, size }) => <Ionicons name="brush" color={color} size={size} />
-                    }}
+                        headerTitle: 'Profile',
+                        drawerIcon: ({ color, size }) => <Ionicons name="brush" color={color} size={size} />,
+                        headerLeft: () => (
+                            <TouchableOpacity
+                                style={{ marginLeft: 20 }}
+                                onPress={() => router.replace('/(jurutera)/(tabs)')}
+                            >
+                                <Ionicons name="arrow-back" size={28} color="black" />
+                            </TouchableOpacity>
+                        ),
+                    })}
                 />
-                <Drawer.Screen
-                    name="profile"
-                    options={{
-                        drawerLabel: 'Profile',
-                        headerTitle: 'User Profile',
-                        drawerIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />
-                    }}
-                />
+
             </Drawer>
         </GestureHandlerRootView>
     );
@@ -107,7 +124,6 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: '700',
         color: '#000',
-        // Ensures the font looks clean on both iOS and Android
         fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
     },
 });

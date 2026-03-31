@@ -14,6 +14,24 @@ import { useUser } from '../../src/context/UserContext'; //
 export default function EditProfileScreen() {
     const { userData } = useUser(); // 
 
+    const formatDOB = (dobValue) => {
+        if (!dobValue) return 'Not Provided';
+        // 1. Handle Firebase Timestamp (standard object with seconds/nanoseconds)
+        if (dobValue && typeof dobValue.toDate === 'function') {
+            return dobValue.toDate().toLocaleDateString('en-GB');
+        }
+        // 2. Handle JS Date objects
+        if (dobValue instanceof Date) {
+            return dobValue.toLocaleDateString('en-GB');
+        }
+        // 3. Handle ISO strings or numeric timestamps
+        const date = new Date(dobValue);
+        if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString('en-GB');
+        }
+        return String(dobValue);
+    };
+
     // State for the only editable field
     const [status, setStatus] = useState(userData?.status || 'Available');
 
@@ -47,7 +65,7 @@ export default function EditProfileScreen() {
                     <Text style={styles.inputLabel}>ID</Text>
                     <TextInput
                         style={styles.readOnlyInput}
-                        value="Eng001" // This would eventually come from userData.uid or similar
+                        value={userData?.user?.uid || ''}
                         editable={false}
                     />
                 </View>
@@ -66,7 +84,7 @@ export default function EditProfileScreen() {
                         <Text style={styles.inputLabel}>Date of Birth</Text>
                         <TextInput
                             style={styles.readOnlyInput}
-                            value="17/4/1998"
+                            value={formatDOB(userData?.user?.dob) || '456'} // Use the helper here
                             editable={false}
                         />
                     </View>
