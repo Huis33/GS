@@ -74,7 +74,7 @@ export default function OMDrawerLayout() {
                     }}
                 />
                 <Drawer.Screen
-                    name="(tabs)"
+                    name="(tabs1)"
                     options={{
                         drawerLabel: 'All Task',
                         drawerIcon: ({ color, size }) => <Ionicons name="list" color={color} size={size} />

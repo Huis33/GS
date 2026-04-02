@@ -18,6 +18,8 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(jurutera)" />
         <Stack.Screen name="jurutera-main" />
+        <Stack.Screen name="(pengurus)" />
+        <Stack.Screen name="pengurus-main" />
       </Stack>
     </UserProvider>
   );
