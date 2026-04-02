@@ -67,14 +67,14 @@ export default function OMDrawerLayout() {
                 })}
             >
                 <Drawer.Screen
-                    name="(tabs)"
+                    name="read-only-Profile"
                     options={{
-                        drawerLabel: 'Edit Profile',
-                        drawerIcon: ({ color, size }) => <Ionicons name="brush" color={color} size={size} />
+                        drawerLabel: 'Profile',
+                        drawerIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} />
                     }}
                 />
                 <Drawer.Screen
-                    name="(tabs1)"
+                    name="task"
                     options={{
                         drawerLabel: 'All Task',
                         drawerIcon: ({ color, size }) => <Ionicons name="list" color={color} size={size} />

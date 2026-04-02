@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -22,7 +22,9 @@ export default function EditProfileScreen() {
     const [status, setStatus] = useState(userData?.availabilityStatus || 'Available1');
     const [loading, setLoading] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
-    const hasStatusChanged = status !== userData?.availabilityStatus;
+    const hasStatusChanged = React.useMemo(() => {
+        return status !== userData?.availabilityStatus;
+    }, [status, userData?.availabilityStatus]);
     const statusOptions = ['Available', 'Not Available', 'On Duty'];
 
     console.log("Current User Data:", userData);
@@ -30,8 +32,7 @@ export default function EditProfileScreen() {
     useEffect(() => {
         const unsubscribe = navigation.addListener('beforeRemove', (e) => {
             if (!hasStatusChanged) {
-                // If nothing changed, let them leave
-                return;
+                return; // If nothing changed, let them leave
             }
             // Prevent default behavior of leaving the screen
             e.preventDefault();
@@ -82,7 +83,7 @@ export default function EditProfileScreen() {
             if (setUserData) {
                 setUserData({
                     ...userData,
-                    status: status,
+                    availabilityStatus: status,
                     lastUpdated: { toDate: () => new Date() } // Mock for UI
                 });
             }
