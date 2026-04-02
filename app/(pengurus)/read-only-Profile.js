@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -7,10 +7,10 @@ import {
     TextInput,
     View,
     TouchableOpacity,
-    Modal,          
-    FlatList,       
-    Alert,           
-    ActivityIndicator 
+    Modal,
+    FlatList,
+    Alert,
+    ActivityIndicator
 } from 'react-native';
 import { useNavigation } from 'expo-router';
 import { useUser } from '../../src/context/UserContext'; // 
@@ -19,55 +19,55 @@ import { updateUserStatus } from '../../src/service/UserService';
 export default function EditProfileScreen() {
     const { userData, setUserData } = useUser(); // 
     const navigation = useNavigation();
-    const initialStatus = userData?.availabilityStatus || 'Available1';
-    const [status, setStatus] = useState(initialStatus);
+    const [status, setStatus] = useState(userData?.availabilityStatus || 'Available1');
     const [loading, setLoading] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
-    //const hasStatusChanged = status !== userData?.availabilityStatus;
+    const hasStatusChanged = status !== userData?.availabilityStatus;
     const statusOptions = ['Available', 'Not Available', 'On Duty'];
-    const statusChangedRef = useRef(false);
 
     console.log("Current User Data:", userData);
 
     useEffect(() => {
-        statusChangedRef.current = status !== (userData?.availabilityStatus || 'Available1');
-    }, [status, userData]);
-
-    // Navigation Guard Logic
-    useEffect(() => {
         const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-            // If the ref is false, we just let the user navigate away
-            if (!statusChangedRef.current) {
+            if (!hasStatusChanged) {
+                // If nothing changed, let them leave
                 return;
             }
-
-            // If changes exist, stop the navigation and show the alert
+            // Prevent default behavior of leaving the screen
             e.preventDefault();
-
             Alert.alert(
                 'Unsaved Changes',
-                'You have changed your availability status. Discard changes and leave?',
+                'You have unsaved changes. Are you sure you want to leave?',
                 [
-                    { text: "Stay here", style: 'cancel', onPress: () => { } },
+                    { text: "Don't leave", style: 'cancel', onPress: () => { } },
                     {
                         text: 'Discard',
                         style: 'destructive',
+                        // If they choose discard, manually trigger the navigation
                         onPress: () => navigation.dispatch(e.data.action),
                     },
                 ]
             );
         });
-
         return unsubscribe;
-    }, [navigation]);
+    }, [navigation, hasStatusChanged]);
 
     const formatDOB = (dobValue) => {
         if (!dobValue) return 'Not Provided';
+        // 1. Handle Firebase Timestamp (standard object with seconds/nanoseconds)
         if (dobValue && typeof dobValue.toDate === 'function') {
             return dobValue.toDate().toLocaleDateString('en-GB');
         }
+        // 2. Handle JS Date objects
+        if (dobValue instanceof Date) {
+            return dobValue.toLocaleDateString('en-GB');
+        }
+        // 3. Handle ISO strings or numeric timestamps
         const date = new Date(dobValue);
-        return !isNaN(date.getTime()) ? date.toLocaleDateString('en-GB') : String(dobValue);
+        if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString('en-GB');
+        }
+        return String(dobValue);
     };
 
     const handleSaveStatus = async () => {
@@ -86,7 +86,6 @@ export default function EditProfileScreen() {
                     lastUpdated: { toDate: () => new Date() } // Mock for UI
                 });
             }
-            statusChangedRef.current = false;
             Alert.alert("Success", "Status and Timestamp updated!");
         } catch (error) {
             Alert.alert("Error", "Update failed.");
@@ -94,8 +93,6 @@ export default function EditProfileScreen() {
             setLoading(false);
         }
     };
-
-    const hasStatusChanged = status !== (userData?.availabilityStatus || 'Available1');
 
     const formatTimestamp = (ts) => {
         if (!ts) return 'Never';
