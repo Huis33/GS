@@ -1,11 +1,11 @@
-import React from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Drawer } from 'expo-router/drawer';
-import { DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { router } from 'expo-router';
+import { DrawerContentScrollView, DrawerItem, DrawerItemList } from '@react-navigation/drawer';
 import { DrawerActions } from '@react-navigation/native';
+import { router } from 'expo-router';
+import { Drawer } from 'expo-router/drawer';
+import React from 'react';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUser } from '../../src/context/UserContext';
 
 function CustomDrawerContent(props) {
@@ -87,14 +87,6 @@ export default function JuruteraDrawerLayout() {
                         drawerLabel: 'Update Availability',
                         headerTitle: 'Profile',
                         drawerIcon: ({ color, size }) => <Ionicons name="brush" color={color} size={size} />,
-                        headerLeft: () => (
-                            <TouchableOpacity
-                                style={{ marginLeft: 20 }}
-                                onPress={() => router.replace('/(jurutera)/(tabs)')}
-                            >
-                                <Ionicons name="arrow-back" size={28} color="black" />
-                            </TouchableOpacity>
-                        ),
                     })}
                 />
 

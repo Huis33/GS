@@ -1,65 +1,121 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useEffect, useRef } from 'react';
+import { useFocusEffect, useNavigation } from 'expo-router';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
-    View,
     TouchableOpacity,
-    Modal,          
-    FlatList,       
-    Alert,           
-    ActivityIndicator 
+    View
 } from 'react-native';
-import { useNavigation } from 'expo-router';
 import { useUser } from '../../src/context/UserContext'; // 
 import { updateUserStatus } from '../../src/service/UserService';
 
 export default function EditProfileScreen() {
-    const { userData, setUserData } = useUser(); // 
+    const { userData, setUserData } = useUser();
     const navigation = useNavigation();
-    const initialStatus = userData?.availabilityStatus || 'Available1';
-    const [status, setStatus] = useState(initialStatus);
+
+    // Clean initialization
+    const [status, setStatus] = useState(userData?.availabilityStatus || 'Available');
     const [loading, setLoading] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
-    //const hasStatusChanged = status !== userData?.availabilityStatus;
+
     const statusOptions = ['Available', 'Not Available', 'On Duty'];
-    const statusChangedRef = useRef(false);
 
-    console.log("Current User Data:", userData);
+    // Sync state if userData loads late (e.g. from an async fetch)
+    const isDirtyRef = useRef(false);
 
+    const hasStatusChanged = status !== (userData?.availabilityStatus || 'Available');
+
+    // Keep the Ref in sync with the state
     useEffect(() => {
-        statusChangedRef.current = status !== (userData?.availabilityStatus || 'Available1');
-    }, [status, userData]);
+        isDirtyRef.current = hasStatusChanged;
+    }, [hasStatusChanged]);
 
-    // Navigation Guard Logic
-    useEffect(() => {
-        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-            // If the ref is false, we just let the user navigate away
-            if (!statusChangedRef.current) {
-                return;
-            }
-
-            // If changes exist, stop the navigation and show the alert
-            e.preventDefault();
-
+    // 2. Reset status when focusing the screen (Fixes the "Stuck Selection" issue)
+   // Handle the "Back" action manually
+    const handleBackPress = useCallback(() => {
+        if (isDirtyRef.current) {
             Alert.alert(
                 'Unsaved Changes',
-                'You have changed your availability status. Discard changes and leave?',
+                'Discard changes and leave?',
                 [
-                    { text: "Stay here", style: 'cancel', onPress: () => { } },
+                    { text: "Stay", style: 'cancel' },
                     {
                         text: 'Discard',
                         style: 'destructive',
-                        onPress: () => navigation.dispatch(e.data.action),
+                        onPress: () => navigation.goBack(), // Use navigation.goBack()
                     },
                 ]
             );
+        } else {
+            navigation.goBack();
+        }
+    }, [navigation]);
+
+    // Apply the header button and listener
+    useEffect(() => {
+        // 1. Handle the Header Back Button
+        navigation.setOptions({
+            headerLeft: () => (
+                <TouchableOpacity onPress={handleBackPress} style={{ marginLeft: 20 }}>
+                    <Ionicons name="arrow-back" size={28} color="black" />
+                </TouchableOpacity>
+            ),
+        });
+
+        // 2. Handle System Back (Android) or Swipes (iOS)
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            if (!isDirtyRef.current) return;
+            
+            e.preventDefault();
+            handleBackPress(); // Re-use the same alert logic
         });
 
         return unsubscribe;
-    }, [navigation]);
+    }, [navigation, handleBackPress]);
+
+    // Reset status when focusing the screen
+    useFocusEffect(
+        useCallback(() => {
+            if (userData?.availabilityStatus) {
+                setStatus(userData.availabilityStatus);
+                isDirtyRef.current = false;
+            }
+        }, [userData?.availabilityStatus])
+    );
+    const handleSaveStatus = async () => {
+        const uid = userData?.user?.uid;
+        if (!uid) {
+            Alert.alert("Error", "User ID not found.");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await updateUserStatus(uid, status);
+            
+            if (setUserData) {
+                setUserData({
+                    ...userData,
+                    availabilityStatus: status,
+                    lastUpdated: { toDate: () => new Date() } 
+                });
+            }
+            isDirtyRef.current = false;
+            Alert.alert("Success", "Status and Timestamp updated!");
+           
+        } catch (error) {
+            Alert.alert("Error", "Update failed.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const formatDOB = (dobValue) => {
         if (!dobValue) return 'Not Provided';
@@ -69,33 +125,6 @@ export default function EditProfileScreen() {
         const date = new Date(dobValue);
         return !isNaN(date.getTime()) ? date.toLocaleDateString('en-GB') : String(dobValue);
     };
-
-    const handleSaveStatus = async () => {
-        const uid = userData?.user?.uid;
-        if (!uid) {
-            Alert.alert("Error", "User ID not found.");
-            return;
-        }
-        setLoading(true);
-        try {
-            await updateUserStatus(uid, status);
-            if (setUserData) {
-                setUserData({
-                    ...userData,
-                    status: status,
-                    lastUpdated: { toDate: () => new Date() } // Mock for UI
-                });
-            }
-            statusChangedRef.current = false;
-            Alert.alert("Success", "Status and Timestamp updated!");
-        } catch (error) {
-            Alert.alert("Error", "Update failed.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const hasStatusChanged = status !== (userData?.availabilityStatus || 'Available1');
 
     const formatTimestamp = (ts) => {
         if (!ts) return 'Never';
@@ -120,7 +149,6 @@ export default function EditProfileScreen() {
             {item === status && <Ionicons name="checkmark" size={20} color="#4CAF50" />}
         </TouchableOpacity>
     );
-
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
             <View style={styles.avatarContainer}>
