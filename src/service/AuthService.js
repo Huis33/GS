@@ -1,4 +1,4 @@
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebaseConfig'; // Adjust paths as needed
 
@@ -22,6 +22,16 @@ export const loginUser = async (email, password) => {
             user: user
         };
     } catch (error) {
+        throw error;
+    }
+};
+
+export const resetPassword = async (email) => {
+    try {
+        await sendPasswordResetEmail(auth, email);
+        return { success: true };
+    } catch (error) {
+        // We throw the error so the UI component can catch it and show an Alert
         throw error;
     }
 };

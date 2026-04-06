@@ -22,7 +22,7 @@ function CustomDrawerContent(props) {
             <View style={styles.drawerHeader}>
                 <Ionicons name="person-circle" size={60} color="#6389DA" />
                 <Text style={styles.userName}>{userData?.name || 'User'}</Text>
-                <Text style={styles.userRole}>{userData?.role || 'Engineer'}</Text>
+                <Text style={styles.userRole}>{userData?.role || 'Service Coordinator'}</Text>
             </View>
 
             {/* 2. Main Navigation Items (Filtered via Screen Options instead of JS logic) */}
@@ -43,7 +43,7 @@ function CustomDrawerContent(props) {
     );
 }
 
-export default function JuruteraDrawerLayout() {
+export default function PenyelarasDrawerLayout() {
     const { userData } = useUser();
 
     return (
@@ -82,11 +82,11 @@ export default function JuruteraDrawerLayout() {
 
                 {/* SHOW EDIT PROFILE */}
                 <Drawer.Screen
-                    name="edit-profile"
+                    name="profile"
                     options={({ navigation }) => ({
-                        drawerLabel: 'Update Availability',
+                        drawerLabel: 'Profile',
                         headerTitle: 'Profile',
-                        drawerIcon: ({ color, size }) => <Ionicons name="brush" color={color} size={size} />
+                        drawerIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} />
                     })}
                 />
 

@@ -1,12 +1,11 @@
-import { Stack } from 'expo-router';
-import React from 'react';
-import SCMainPage from '../app/(penyelaras)/SCMainPage';
+import { Redirect, Stack } from 'expo-router';
 
 export default function Page() {
     return (
         <>
-            <Stack.Screen options={{ title: 'Penyelaras Main Page', headerBackTitle: 'Back', headerShown: false }} />
-            <SCMainPage />
+            {/* Ensures this 'bridge' page is invisible while it redirects */}
+            <Stack.Screen options={{ headerShown: false }} />
+            <Redirect href={"/(penyelaras)/(tabs)" as any} />
         </>
     );
 }

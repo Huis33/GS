@@ -66,6 +66,14 @@ export default function OMDrawerLayout() {
                     drawerActiveTintColor: '#6389DA',
                 })}
             >
+                {/* HIDE THE TABS FROM DRAWER MENU */}
+                <Drawer.Screen
+                    name="(tabs)"
+                    options={{
+                        drawerLabel: 'Home',
+                        drawerIcon: ({ color, size }) => <Ionicons name="home-sharp" color={color} size={size} />
+                    }}
+                />
                 <Drawer.Screen
                     name="read-only-Profile"
                     options={{
