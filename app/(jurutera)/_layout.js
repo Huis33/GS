@@ -86,7 +86,15 @@ export default function JuruteraDrawerLayout() {
                     options={({ navigation }) => ({
                         drawerLabel: 'Update Availability',
                         headerTitle: 'Profile',
-                        drawerIcon: ({ color, size }) => <Ionicons name="brush" color={color} size={size} />
+                        drawerIcon: ({ color, size }) => <Ionicons name="brush" color={color} size={size} />,
+                        headerLeft: () => (
+                            <TouchableOpacity
+                                style={{ marginLeft: 20 }}
+                                onPress={() => router.replace('/(jurutera)/(tabs)')}
+                            >
+                                <Ionicons name="arrow-back" size={28} color="black" />
+                            </TouchableOpacity>
+                        ),
                     })}
                 />
 
