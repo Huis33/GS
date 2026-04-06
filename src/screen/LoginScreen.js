@@ -49,7 +49,6 @@ export default function LoginScreen() {
                 // Fallback for unexpected roles
                 Alert.alert("Access Denied", "Your role is not authorized for this app.");
                 setLoading(false);
-
             }
 
         } catch (error) {

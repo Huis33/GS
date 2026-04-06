@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
     ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 //import { auth } from '../../firebaseConfig';
 //import { sendPasswordResetEmail } from 'firebase/auth';
 import { resetPassword } from '../../src/service/AuthService';
@@ -39,7 +39,7 @@ export default function ForgetPasswordScreen() {
             Alert.alert(
                 "Success",
                 "Check your inbox for the reset link.",
-                [{ text: "OK", onPress: () => router.goBack() }]
+                [{ text: "OK", onPress: () => router.back() }]
             );
         } catch (error) {
             // Handle specific Firebase error codes
@@ -59,7 +59,7 @@ export default function ForgetPasswordScreen() {
         >
             <View style={styles.inner}>
                 {/* Back Button */}
-                <TouchableOpacity onPress={() => router.goBack()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
 

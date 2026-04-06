@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation } from 'expo-router';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigation } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -97,16 +97,6 @@ export default function EditProfileScreen() {
             setLoading(false);
         }
     };
-
-    const formatDOB = (dobValue) => {
-        if (!dobValue) return 'Not Provided';
-        if (dobValue && typeof dobValue.toDate === 'function') {
-            return dobValue.toDate().toLocaleDateString('en-GB');
-        }
-        const date = new Date(dobValue);
-        return !isNaN(date.getTime()) ? date.toLocaleDateString('en-GB') : String(dobValue);
-    };
-
     const formatTimestamp = (ts) => {
         if (!ts) return 'Never';
         const date = ts.toDate ? ts.toDate() : new Date(ts);
