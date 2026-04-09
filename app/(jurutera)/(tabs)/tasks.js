@@ -1,17 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
     Alert,
-    Platform
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useUser } from '../../../src/context/UserContext';
-import { useRouter } from 'expo-router'; 
-import Slider from '@react-native-community/slider';
 
 export default function TasksPage() {
     const router = useRouter();
@@ -23,7 +22,7 @@ export default function TasksPage() {
     //const [openProgressId, setOpenProgressId] = useState(null);
 
     const [taskList, setTaskList] = useState([
-        { id: '1', date: '4/1/2026', title: 'User Testing Session', description: 'Conduct usability testing with 10 participants', progress: 0.5, status: 'In Progress' },
+        { id: '1', date: '4/1/2026', title: 'User Testing Session', description: 'Conduct usability testing with 10 participants', progress: 0.3, status: 'In Progress' },
         { id: '2', date: '6/1/2026', title: 'System Validation', description: 'Verify that system features function correctly.', progress: 0.0, status: 'Not Yet Started' },
         { id: '3', date: '2/1/2026', title: 'Requirement Gathering', description: 'Meeting with stakeholders.', progress: 1.0, status: 'Done' }
     ]);
@@ -39,6 +38,18 @@ export default function TasksPage() {
                 // Logic: If moving to Done, force progress to 100%
                 if (updates.status === 'Done') {
                     updatedTask.progress = 1.0;
+                }
+                if (updatedTask.progress === 1.0 && task.status !== 'Done' && updates.status !== 'Done') {
+                    Alert.alert("Finalize Task", "Once marked as Done, you cannot change the status. Proceed?", [
+                        { text: "Cancel", style: "cancel" },
+                        { 
+                            text: "Confirm", 
+                            onPress: () => { 
+                                // This call won't trigger the alert because updates.status will be 'Done'
+                                updateTask(taskId, { status: 'Done' }); 
+                            } 
+                        }
+                    ]);
                 }
                 // Logic: If moving back to Not Yet Started, force progress to 0% (Optional but recommended)
                 if (updates.status === 'Not Yet Started') {
