@@ -1,5 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    SafeAreaView,
+    StatusBar
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
@@ -29,16 +37,19 @@ export default function TaskDetailsScreen() {
     };
 
     return (
-        <View style={styles.container}>
-            {/* Header */}
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" />
+
+            {/* Custom Header - Full Width Control */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
-                    <Ionicons name="arrow-back" size={24} color="black" />
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={26} color="black" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Task Details</Text>
+                <View style={{ width: 26 }} /> {/* Balance for centering */}
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 {/* Task Title and ID */}
                 <Text style={styles.title}>{taskDetails.title}</Text>
                 <Text style={styles.taskID}>TaskID: {taskDetails.taskID}</Text>
@@ -46,67 +57,133 @@ export default function TaskDetailsScreen() {
                 {/* Priority and Dates */}
                 <View style={styles.metaRow}>
                     <View style={styles.priorityBadge}>
-                        <Ionicons name="timer-outline" size={16} color="#856404" />
+                        <Ionicons name="alert-circle-outline" size={18} color="#856404" />
                         <Text style={styles.priorityText}>{taskDetails.priority}</Text>
                     </View>
                     <View style={styles.dateInfo}>
-                        <Text style={styles.dateLabel}>Due: {taskDetails.dueDate}</Text>
-                        <Text style={styles.dateLabel}>Task Created By: {taskDetails.createdDate}</Text>
+                        <Text style={styles.dateLabel}>Due: <Text style={styles.dateValue}>{taskDetails.dueDate}</Text></Text>
+                        <Text style={styles.dateLabel}>Created: <Text style={styles.dateValue}>{taskDetails.createdDate}</Text></Text>
                     </View>
                 </View>
 
                 {/* Main Details Card */}
                 <View style={styles.detailsCard}>
-                    <Text style={styles.boldLabel}>Task Name: {taskDetails.fullName}</Text>
-                    <Text style={styles.infoText}>Customer Name: {taskDetails.customerName}</Text>
-                    <Text style={styles.infoText}>Customer Contact Number: {taskDetails.contact}</Text>
-                    <Text style={styles.infoText}>Task Location: {taskDetails.location}</Text>
-                    <Text style={styles.infoText}>Task Date: {taskDetails.date}</Text>
-                    <Text style={styles.infoText}>Task Time: {taskDetails.time}</Text>
-                    <Text style={styles.infoText}>Task Category / Type: {taskDetails.category}</Text>
-                    <Text style={styles.infoText}>Assigned by: {taskDetails.assignedBy}</Text>
+                    <Text style={styles.boldLabel}>Task Details</Text>
 
-                    <Text style={[styles.infoText, { marginTop: 15 }]}>Task Description:</Text>
+                    <DetailItem label="Full Name" value={taskDetails.fullName} isBold />
+                    <DetailItem label="Customer" value={taskDetails.customerName} />
+                    <DetailItem label="Contact" value={taskDetails.contact} />
+                    <DetailItem label="Location" value={taskDetails.location} />
+                    <DetailItem label="Date" value={taskDetails.date} />
+                    <DetailItem label="Time" value={taskDetails.time} />
+                    <DetailItem label="Category" value={taskDetails.category} />
+                    <DetailItem label="Assigned By" value={taskDetails.assignedBy} />
+
+                    <View style={styles.divider} />
+
+                    <Text style={styles.descriptionLabel}>Task Description:</Text>
                     <Text style={styles.descriptionText}>{taskDetails.description}</Text>
                 </View>
 
                 {/* Assigned To Section */}
                 <View style={styles.assignedSection}>
                     <Text style={styles.sectionTitle}>Assigned To:</Text>
-                    {taskDetails.assignedTo.map(person => (
-                        <View key={person.id} style={styles.personRow}>
-                            <View style={styles.avatar}>
-                                <Text style={styles.avatarText}>{person.initial}</Text>
+                    <View style={styles.avatarContainer}>
+                        {taskDetails.assignedTo.map(person => (
+                            <View key={person.id} style={styles.personRow}>
+                                <View style={styles.avatar}>
+                                    <Text style={styles.avatarText}>{person.initial}</Text>
+                                </View>
+                                <Text style={styles.personName}>{person.name}</Text>
                             </View>
-                            <Text style={styles.personName}>{person.name}</Text>
-                        </View>
-                    ))}
+                        ))}
+                    </View>
                 </View>
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }
 
+const DetailItem = ({ label, value, isBold }) => (
+    <View style={styles.detailItemRow}>
+        <Text style={styles.infoLabel}>{label}: </Text>
+        <Text style={[styles.infoValue, isBold && styles.infoValueBold]}>{value}</Text>
+    </View>
+);
+
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
-    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#eee' },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', marginLeft: 15 },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 15,
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#F0F0F0'
+    },
+    headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#000' },
+    backButton: { padding: 4 },
     content: { padding: 20 },
-    title: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-    taskID: { fontSize: 14, color: '#666', marginBottom: 15 },
-    metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-    priorityBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF3CD', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 15, marginRight: 15 },
-    priorityText: { color: '#856404', fontWeight: 'bold', marginLeft: 5 },
-    dateInfo: { flex: 1 },
-    dateLabel: { fontSize: 12, color: '#666' },
-    detailsCard: { backgroundColor: '#E8F0FE', borderRadius: 20, padding: 20, marginBottom: 20 },
-    boldLabel: { fontSize: 18, fontWeight: 'bold', color: '#000', marginBottom: 10 },
-    infoText: { fontSize: 15, color: '#333', marginBottom: 8 },
-    descriptionText: { fontSize: 14, color: '#444', lineHeight: 20 },
-    assignedSection: { backgroundColor: '#E8F0FE', borderRadius: 20, padding: 20 },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
+    title: { fontSize: 26, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 5 },
+    taskID: { fontSize: 14, color: '#888', marginBottom: 20 },
+
+    metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 25 },
+    priorityBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFF3CD',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
+        marginRight: 20
+    },
+    priorityText: { color: '#856404', fontWeight: 'bold', marginLeft: 6, fontSize: 14 },
+    dateInfo: { justifyContent: 'center' },
+    dateLabel: { fontSize: 13, color: '#666', marginBottom: 2 },
+    dateValue: { color: '#333', fontWeight: '600' },
+
+    detailsCard: {
+        backgroundColor: '#F0F7FF',
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: '#E1E9F5'
+    },
+    boldLabel: { fontSize: 18, fontWeight: 'bold', color: '#003366', marginBottom: 15 },
+    detailItemRow: { flexDirection: 'row', marginBottom: 10, flexWrap: 'wrap' },
+    infoLabel: { fontSize: 15, color: '#555', fontWeight: '500' },
+    infoValue: { fontSize: 15, color: '#1A1A1A', flexShrink: 1 },
+    infoValueBold: { fontWeight: 'bold' },
+
+    divider: { height: 1, backgroundColor: '#D6E4F0', marginVertical: 15 },
+    descriptionLabel: { fontSize: 15, fontWeight: 'bold', color: '#333', marginBottom: 8 },
+    descriptionText: { fontSize: 14, color: '#444', lineHeight: 22 },
+
+    assignedSection: {
+        backgroundColor: '#F0F7FF',
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 30,
+        borderWidth: 1,
+        borderColor: '#E1E9F5'
+    },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#003366', marginBottom: 15 },
+    avatarContainer: { flexDirection: 'column' },
     personRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    avatar: { width: 35, height: 35, borderRadius: 17.5, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', marginRight: 15, borderWidth: 1, borderColor: '#DDD' },
-    avatarText: { color: '#6B4EFF', fontWeight: 'bold' },
-    personName: { fontSize: 16, color: '#333' }
+    avatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 15,
+        borderWidth: 1,
+        borderColor: '#6389DA'
+    },
+    avatarText: { color: '#6389DA', fontWeight: 'bold', fontSize: 16 },
+    personName: { fontSize: 16, color: '#1A1A1A', fontWeight: '500' }
 });

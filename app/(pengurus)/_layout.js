@@ -45,7 +45,7 @@ export default function OMDrawerLayout() {
         <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
                 drawerContent={(props) => <CustomDrawerContent {...props} />}
-                screenOptions={({ navigation }) => ({ // Access navigation from here instead of useNavigation()
+                screenOptions={({ navigation }) => ({
                     headerShown: true,
                     headerTitleAlign: 'center',
                     headerShadowVisible: false,
@@ -58,6 +58,18 @@ export default function OMDrawerLayout() {
                             <Ionicons name="menu-outline" size={30} color="black" />
                         </TouchableOpacity>
                     ),
+                    // Adding the headerRight here
+                    headerRight: () => (
+                        <TouchableOpacity
+                            style={{ marginRight: 20}}
+                            onPress={() => {
+                                router.push('/analytics');
+                            }}
+                        >
+                            <Ionicons name="stats-chart-outline" size={24} color="black" />
+                        </TouchableOpacity>
+                    ),
+                    
                     headerTitle: () => (
                         <Text style={styles.headerWelcome}>
                             Welcome, {userData?.name || 'User'}
@@ -94,6 +106,13 @@ export default function OMDrawerLayout() {
                         drawerLabel: 'Profile',
                         headerTitle: 'User Profile',
                         drawerIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />
+                    }}
+                />
+                <Drawer.Screen
+                    name="analytics"
+                    options={{
+                        headerShown: false,
+                        drawerItemStyle: { display: 'none' } // This hides it from the sidebar list
                     }}
                 />
             </Drawer>

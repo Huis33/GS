@@ -23,7 +23,7 @@ export default function EditProfileScreen() {
     const [status, setStatus] = useState(initialStatus);
     const [loading, setLoading] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
-    //const hasStatusChanged = status !== userData?.availabilityStatus;
+    const hasStatusChanged = status !== userData?.availabilityStatus;
     const statusOptions = ['Available', 'Not Available', 'On Duty'];
     const statusChangedRef = useRef(false);
 
