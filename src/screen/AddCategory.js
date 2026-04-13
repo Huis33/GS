@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { addPriorityCategory } from '../service/priorityService';
 
 export default function AddCategoryScreen() {
     const router = useRouter();
@@ -25,16 +26,22 @@ export default function AddCategoryScreen() {
 
     const priorityOptions = ['Critical', 'High', 'Medium', 'Low'];
 
-    const handleSave = () => {
-        if (!categoryName || !description) {
-            Alert.alert("Error", "Please fill in all fields.");
+    const handleSave = async () => {
+        // Validation
+        if (!categoryName || !description || !priority) {
+            Alert.alert("Error", "Please fill in all fields including Priority.");
             return;
         }
 
-        // Logic to save to Firebase goes here later
-        console.log("Saving Category:", { categoryName, description, priority });
-        Alert.alert("Success", "Category added successfully!");
-        router.back();
+        try {
+            // Show a loading state if you have one, or just proceed
+            await addPriorityCategory(categoryName, description, priority);
+
+            Alert.alert("Success", "Category added to database!");
+            router.back(); // Navigate back to the list
+        } catch (error) {
+            Alert.alert("Upload Failed", "Could not save to Firebase. Please try again.");
+        }
     };
 
     return (

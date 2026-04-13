@@ -89,7 +89,7 @@ export default function EditProfileScreen() {
                 });
             }
             isDirtyRef.current = false;
-            Alert.alert("Success", "Status and Timestamp updated!");
+            Alert.alert("Success", "Current status has been updated.");
            
         } catch (error) {
             Alert.alert("Error", "Update failed.");

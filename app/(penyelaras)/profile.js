@@ -1,10 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import { useNavigation } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Modal,
     ScrollView,
     StyleSheet,
     Text,
     TextInput,
+    TouchableOpacity,
     View
 } from 'react-native';
 import { useUser } from '../../src/context/UserContext';
