@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    SafeAreaView,
     ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
     Platform,
-    ScrollView
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 // Firebase imports
+import { deleteDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
-import { doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 export default function CategoryDetailScreen() {
     const router = useRouter();
@@ -206,10 +206,10 @@ export default function CategoryDetailScreen() {
 
                         {/* Description */}
                         <View style={styles.inputGroup}>
-                            <div style={styles.labelRow}>
+                            <View style={styles.labelRow}>
                                 <Text style={styles.label}>Description</Text>
                                 <Text style={styles.charCount}>{description.length}/500</Text>
-                            </div>
+                            </View>
                             <TextInput
                                 style={[styles.whiteInput, styles.textArea]}
                                 value={description}
