@@ -167,11 +167,24 @@ export default function EditProfileScreen() {
                 <View style={styles.row}>
                     <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
                         <Text style={styles.inputLabel}>Date of Birth</Text>
-                        <TextInput style={styles.readOnlyInput} value={formatDOB(userData?.dob)} editable={false} />
+                        <TextInput
+                            style={styles.readOnlyInput}
+                            value={formatDOB(userData?.dob)}
+                            editable={false}
+                        />
                     </View>
                     <View style={[styles.inputGroup, { flex: 1.5 }]}>
-                        <Text style={styles.inputLabel}>Role</Text>
-                        <TextInput style={styles.readOnlyInput} value={userData?.role || 'Engineer'} editable={false} />
+                        <Text style={styles.inputLabel}>Role & Skillset</Text>
+                        <TextInput
+                            style={styles.readOnlyInput}
+                            /* COMBINED ROLE AND SKILLSET HERE */
+                            value={
+                                userData?.skillSet
+                                    ? `${userData.role || 'Engineer'} (${userData.skillSet})`
+                                    : userData?.role || 'Engineer'
+                            }
+                            editable={false}
+                        />
                     </View>
                 </View>
 

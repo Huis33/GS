@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -9,13 +9,40 @@ import {
     SafeAreaView,
     StatusBar,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker'; // Required dependency
 
 export default function NewTaskScreen() {
     const router = useRouter();
+
+    // We only use state for the PDF for now to verify the button works
+    const [selectedPDF, setSelectedPDF] = useState(null);
+
+    const handleUploadPDF = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: 'application/pdf',
+                copyToCacheDirectory: true,
+            });
+
+            if (!result.canceled) {
+                const file = result.assets[0];
+                setSelectedPDF(file); // Store the file object
+
+                Alert.alert(
+                    "Success",
+                    `Selected: ${file.name}\nSize: ${(file.size / 1024 / 1024).toFixed(2)} MB`
+                );
+            }
+        } catch (error) {
+            Alert.alert("Error", "Could not access storage.");
+            console.error(error);
+        }
+    };
 
     return (
         <SafeAreaView style={styles.container}>
@@ -36,9 +63,10 @@ export default function NewTaskScreen() {
             >
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <View style={styles.formCard}>
+                        {/* Static Placeholder Data */}
                         <Text style={styles.taskIDText}>TaskID: T098764567</Text>
 
-                        {/* Task Name */}
+                        {/* Task Name - REMAINING FAKE UI */}
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Task Name</Text>
                             <TextInput
@@ -48,12 +76,12 @@ export default function NewTaskScreen() {
                             />
                         </View>
 
-                        {/* Description */}
+                        {/* Description - REMAINING FAKE UI */}
                         <View style={styles.inputGroup}>
-                            <View style={styles.labelRow}>
+                            <div style={styles.labelRow}>
                                 <Text style={styles.label}>Description</Text>
                                 <Text style={styles.charCount}>34/100</Text>
-                            </View>
+                            </div>
                             <TextInput
                                 style={[styles.input, styles.textArea]}
                                 placeholder="-"
@@ -62,7 +90,7 @@ export default function NewTaskScreen() {
                             />
                         </View>
 
-                        {/* Customer & Contact Row */}
+                        {/* Customer & Contact - REMAINING FAKE UI */}
                         <View style={styles.row}>
                             <View style={[styles.inputGroup, { flex: 1.5, marginRight: 10 }]}>
                                 <Text style={styles.label}>Customer</Text>
@@ -74,7 +102,7 @@ export default function NewTaskScreen() {
                             </View>
                         </View>
 
-                        {/* Schedule & Location Row */}
+                        {/* Schedule & Location - REMAINING FAKE UI */}
                         <View style={styles.row}>
                             <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
                                 <Text style={styles.label}>Schedule (Due Date)</Text>
@@ -92,7 +120,7 @@ export default function NewTaskScreen() {
                             </View>
                         </View>
 
-                        {/* Task Category */}
+                        {/* Task Category & Status - REMAINING FAKE UI */}
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Task Category</Text>
                             <TouchableOpacity style={styles.dropdown}>
@@ -101,7 +129,6 @@ export default function NewTaskScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Task Status */}
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Task Status</Text>
                             <View style={[styles.input, styles.disabledInput]}>
@@ -109,7 +136,7 @@ export default function NewTaskScreen() {
                             </View>
                         </View>
 
-                        {/* Assign To */}
+                        {/* Assign To - REMAINING FAKE UI */}
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Assign To:</Text>
                             <TouchableOpacity style={styles.dropdown}>
@@ -118,18 +145,23 @@ export default function NewTaskScreen() {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Upload PDF Button */}
-                        <TouchableOpacity style={styles.uploadButton}>
-                            <Text style={styles.uploadButtonText}>Upload PDF</Text>
+                        {/* Upload PDF Button - NOW FUNCTIONAL */}
+                        <TouchableOpacity
+                            style={styles.uploadButton}
+                            onPress={handleUploadPDF}
+                        >
+                            <Text style={styles.uploadButtonText} numberOfLines={1}>
+                                {selectedPDF ? `File: ${selectedPDF.name}` : "Upload PDF"}
+                            </Text>
                         </TouchableOpacity>
 
-                        {/* Bottom Action Buttons: Reset and Save */}
+                        {/* Bottom Action Buttons */}
                         <View style={styles.bottomActions}>
-                            <TouchableOpacity style={styles.resetButton}>
+                            <TouchableOpacity style={styles.resetButton} onPress={() => setSelectedPDF(null)}>
                                 <Text style={styles.resetButtonText}>Reset</Text>
                             </TouchableOpacity>
 
-                            <TouchableOpacity style={styles.saveButton}>
+                            <TouchableOpacity style={styles.saveButton} onPress={() => Alert.alert("Note", "Saving is not connected to DB yet.")}>
                                 <Text style={styles.saveButtonText}>Save</Text>
                             </TouchableOpacity>
                         </View>

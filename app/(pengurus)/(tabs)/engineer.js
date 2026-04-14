@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,38 +6,61 @@ import {
     TextInput,
     TouchableOpacity,
     FlatList,
-    SafeAreaView
+    SafeAreaView,
+    ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useUser } from '../../../src/context/UserContext'; // Adjust path to your context
+import { db } from '../../../firebaseConfig'; // Adjust your firebase config path
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 export default function EngineerListScreen() {
-    const { userData } = useUser();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('Available');
+    const [engineers, setEngineers] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock data based on image_da9aa0.png
-    const engineers = [
-        { id: '1', name: 'Alice Tan', status: 'Available' },
-        { id: '2', name: 'Clara Montgomery', status: 'Available' },
-        { id: '3', name: 'Daisy Holloway', status: 'Available' },
-        { id: '4', name: 'Elias Thorne', status: 'Available' },
-        { id: '5', name: 'Jaxen Reed', status: 'Available' },
-        { id: '6', name: 'Julian Vance', status: 'Available' },
-        { id: '7', name: 'Kieran Blackwood', status: 'Available' },
-        { id: '8', name: 'Lyra Vane', status: 'Available' },
-        { id: '9', name: 'Milo Finch', status: 'Available' },
-        { id: '10', name: 'Nova Sterling', status: 'Available' },
-        { id: '11', name: 'Ruby Chen', status: 'Available' },
-        { id: '12', name: 'Sienna Brooks', status: 'Available' },
-    ];
+    // Fetch Engineers from Firebase
+    useEffect(() => {
+        // Query users where role is "Engineer"
+        const q = query(
+            collection(db, 'user'),
+            where('role', '==', 'Engineer')
+        );
+
+        const unsubscribe = onSnapshot(q, (querySnapshot) => {
+            const engineerData = [];
+            querySnapshot.forEach((doc) => {
+                engineerData.push({ id: doc.id, ...doc.data() });
+            });
+            setEngineers(engineerData);
+            setLoading(false);
+        }, (error) => {
+            console.error("Error fetching engineers: ", error);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // Filter logic: Search Query + Tab Status
+    const filteredEngineers = engineers.filter(e => {
+        const matchesSearch = e.name?.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus = e.availabilityStatus === activeTab;
+        return matchesSearch && matchesStatus;
+    });
 
     const renderEngineerItem = ({ item }) => (
         <TouchableOpacity style={styles.engineerItem}>
             <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{item.name.charAt(0)}</Text>
+                <Text style={styles.avatarText}>
+                    {item.name ? item.name.charAt(0).toUpperCase() : '?'}
+                </Text>
             </View>
-            <Text style={styles.engineerName}>{item.name}</Text>
+            <View>
+                <Text style={styles.engineerName}>{item.name}</Text>
+                {/* Optional: Show skillset if it exists */}
+                {item.skillSet && <Text style={styles.skillText}>{item.skillSet}</Text>}
+            </View>
         </TouchableOpacity>
     );
 
@@ -71,14 +94,23 @@ export default function EngineerListScreen() {
                 ))}
             </View>
 
-            {/* List of Engineers */}
-            <FlatList
-                data={engineers.filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()))}
-                keyExtractor={(item) => item.id}
-                renderItem={renderEngineerItem}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={false}
-            />
+            {/* List Handling */}
+            {loading ? (
+                <View style={styles.center}>
+                    <ActivityIndicator size="large" color="#2F80ED" />
+                </View>
+            ) : (
+                <FlatList
+                    data={filteredEngineers}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderEngineerItem}
+                    contentContainerStyle={styles.listContent}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <Text style={styles.emptyText}>No engineers found in this category.</Text>
+                    }
+                />
+            )}
         </SafeAreaView>
     );
 }
@@ -95,7 +127,7 @@ const styles = StyleSheet.create({
     },
     welcomeText: { fontSize: 22, color: '#333' },
     boldText: { fontWeight: 'bold' },
-    searchContainer: { paddingHorizontal: 20, marginBottom: 15 },
+    searchContainer: { paddingHorizontal: 20, marginBottom: 15, marginTop: 10 },
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -135,5 +167,8 @@ const styles = StyleSheet.create({
         marginRight: 15
     },
     avatarText: { color: '#D35400', fontWeight: 'bold', fontSize: 16 },
-    engineerName: { fontSize: 16, color: '#333', fontWeight: '500' }
+    engineerName: { fontSize: 16, color: '#333', fontWeight: '500' },
+    skillText: { fontSize: 12, color: '#777' }, // Added for skillset
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    emptyText: { textAlign: 'center', marginTop: 50, color: '#999', fontSize: 14 }
 });
