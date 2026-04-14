@@ -1,20 +1,20 @@
+import { Ionicons } from '@expo/vector-icons';
+import * as DocumentPicker from 'expo-document-picker'; // Required dependency
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TextInput,
-    TouchableOpacity,
-    SafeAreaView,
-    StatusBar,
+    Alert,
     KeyboardAvoidingView,
     Platform,
-    Alert
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import * as DocumentPicker from 'expo-document-picker'; // Required dependency
 
 export default function NewTaskScreen() {
     const router = useRouter();
@@ -78,10 +78,10 @@ export default function NewTaskScreen() {
 
                         {/* Description - REMAINING FAKE UI */}
                         <View style={styles.inputGroup}>
-                            <div style={styles.labelRow}>
+                            <View style={styles.labelRow}>
                                 <Text style={styles.label}>Description</Text>
                                 <Text style={styles.charCount}>34/100</Text>
-                            </div>
+                            </View>
                             <TextInput
                                 style={[styles.input, styles.textArea]}
                                 placeholder="-"
