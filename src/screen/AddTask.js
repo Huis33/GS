@@ -1,25 +1,25 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker'; // Required dependency
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import { addDoc, collection, getDocs, Timestamp } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
     Alert,
     KeyboardAvoidingView,
+    Modal,
     Platform,
-    SafeAreaView,
     ScrollView,
     StatusBar,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
-    ActivityIndicator,
-    Modal
+    View
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { db } from '../../firebaseConfig';
-import { collection, addDoc, getDocs, Timestamp, query, orderBy } from 'firebase/firestore';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { auth, db } from '../../firebaseConfig';
 
 export default function NewTaskScreen() {
     const router = useRouter();
@@ -47,6 +47,29 @@ export default function NewTaskScreen() {
         return d;
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
+
+    const handleDatePickerChange = (event, date) => {
+        // Android emits "dismissed" when user closes without selecting.
+        if (event?.type === 'dismissed') {
+            setShowDatePicker(false);
+            return;
+        }
+        setShowDatePicker(false);
+        if (date) setDueDate(date);
+    };
+
+    const openDatePicker = () => {
+        if (Platform.OS === 'android') {
+            DateTimePickerAndroid.open({
+                value: dueDate,
+                mode: 'date',
+                is24Hour: true,
+                onChange: handleDatePickerChange,
+            });
+            return;
+        }
+        setShowDatePicker(true);
+    };
 
     // --- FETCH DATA ---
     useEffect(() => {
@@ -98,6 +121,7 @@ export default function NewTaskScreen() {
 
         setLoading(true);
         try {
+            const currentUser = auth.currentUser;
             const newTask = {
                 name: taskName,
                 taskDescription: description,
@@ -113,8 +137,8 @@ export default function NewTaskScreen() {
                 hasAttachment: !!selectedPDF,
                 attachedFile: selectedPDF ? selectedPDF.uri : "", // In production, upload to Storage first
                 createdDate: Timestamp.now(),
-                createdBy: auth.currentUser?.uid || "Anonymous",
-                creatorName: auth.currentUser?.name || "System User"
+                createdBy: currentUser?.uid || "Anonymous",
+                creatorName: currentUser?.displayName || "System User"
             };
 
             await addDoc(collection(db, 'task'), newTask);
@@ -184,7 +208,7 @@ export default function NewTaskScreen() {
                         <View style={styles.row}>
                             <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
                                 <Text style={styles.label}>Due Date</Text>
-                                <TouchableOpacity style={styles.dropdown} onPress={() => setShowDatePicker(true)}>
+                                <TouchableOpacity style={styles.dropdown} onPress={openDatePicker}>
                                     <Text style={styles.dropdownText}>{dueDate.toLocaleString()}</Text>
                                     <Ionicons name="calendar-outline" size={20} color="#333" />
                                 </TouchableOpacity>
@@ -200,15 +224,12 @@ export default function NewTaskScreen() {
                             </View>
                         </View>
 
-                        {showDatePicker && (
+                        {Platform.OS === 'ios' && showDatePicker && (
                             <DateTimePicker
                                 value={dueDate}
                                 mode="datetime"
                                 is24Hour={true}
-                                onChange={(event, date) => {
-                                    setShowDatePicker(false);
-                                    if (date) setDueDate(date);
-                                }}
+                                onChange={handleDatePickerChange}
                             />
                         )}
 
