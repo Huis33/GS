@@ -159,217 +159,156 @@ export default function NewTaskScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={26} color="black" />
+                    <Ionicons name="close-outline" size={30} color="#333" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>New Task</Text>
-                <View style={{ width: 26 }} />
+                <TouchableOpacity onPress={handleSaveTask} disabled={loading}>
+                    {loading ? <ActivityIndicator size="small" color="#6389DA" /> : <Text style={styles.headerActionText}>Save</Text>}
+                </TouchableOpacity>
             </View>
 
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <View style={styles.formCard}>
 
+                    {/* Section: Primary Information */}
+                    <Text style={styles.sectionHeader}>TASK INFORMATION</Text>
+                    <View style={styles.card}>
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Task Name</Text>
                             <TextInput
                                 style={styles.input}
                                 value={taskName}
                                 onChangeText={setTaskName}
-                                placeholder="Enter Task Name"
+                                placeholder="e.g. System Maintenance"
+                                placeholderTextColor="#AAA"
                             />
                         </View>
 
-                        <View style={styles.inputGroup}>
+                        <View style={[styles.inputGroup, { marginBottom: 0 }]}>
                             <View style={styles.labelRow}>
                                 <Text style={styles.label}>Description</Text>
                                 <Text style={styles.charCount}>{description.length}/500</Text>
                             </View>
                             <TextInput
                                 style={[styles.input, styles.textArea]}
-                                placeholder="Enter details..."
+                                placeholder="Provide context or instructions..."
+                                placeholderTextColor="#AAA"
                                 multiline
                                 value={description}
                                 onChangeText={(t) => t.length <= 500 && setDescription(t)}
                             />
                         </View>
+                    </View>
 
+                    {/* Section: Client & Logistics */}
+                    <Text style={styles.sectionHeader}>LOGISTICS & CLIENT</Text>
+                    <View style={styles.card}>
                         <View style={styles.row}>
-                            <View style={[styles.inputGroup, { flex: 1.5, marginRight: 10 }]}>
+                            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
                                 <Text style={styles.label}>Customer</Text>
-                                <TextInput style={styles.input} value={customer} onChangeText={setCustomer} placeholder="Danny" />
+                                <TextInput style={styles.input} value={customer} onChangeText={setCustomer} placeholder="Name" />
                             </View>
                             <View style={[styles.inputGroup, { flex: 1 }]}>
                                 <Text style={styles.label}>Contact No.</Text>
-                                <TextInput style={styles.input} value={contact} onChangeText={setContact} placeholder="011..." />
+                                <TextInput style={styles.input} value={contact} onChangeText={setContact} placeholder="01X-XXX" keyboardType="phone-pad" />
                             </View>
                         </View>
 
-                        {/* Schedule & Location */}
-                        <View style={styles.row}>
-                            <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
-                                <Text style={styles.label}>Due Date</Text>
-                                <TouchableOpacity style={styles.dropdown} onPress={openDatePicker}>
-                                    <Text style={styles.dropdownText}>{dueDate.toLocaleString()}</Text>
-                                    <Ionicons name="calendar-outline" size={20} color="#333" />
-                                </TouchableOpacity>
-                            </View>
-                            <View style={[styles.inputGroup, { flex: 1 }]}>
-                                <Text style={styles.label}>Location</Text>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Location</Text>
+                            <View style={styles.inputWithIcon}>
+                                <Ionicons name="location-outline" size={20} color="#6389DA" />
                                 <TextInput
-                                    style={styles.input}
+                                    style={styles.flexInput}
                                     value={location}
                                     onChangeText={setLocation}
-                                    placeholder="Enter Location"
+                                    placeholder="Enter address or site"
                                 />
                             </View>
                         </View>
 
-                        {Platform.OS === 'ios' && showDatePicker && (
-                            <DateTimePicker
-                                value={dueDate}
-                                mode="datetime"
-                                is24Hour={true}
-                                onChange={handleDatePickerChange}
-                            />
-                        )}
-
-                        {/* Category Dropdown (With Priority Display) */}
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Task Category</Text>
-                            <TouchableOpacity
-                                style={styles.dropdown}
-                                onPress={() => setCategoryModalVisible(true)}
-                            >
-                                <Text style={styles.dropdownText}>
-                                    {selectedCategory
-                                        ? `${selectedCategory.categoryName} (${selectedCategory.category})`
-                                        : "Select Category"}
-                                </Text>
-                                <Ionicons name="chevron-down" size={20} color="#333" />
-                            </TouchableOpacity>
-                        </View>
-
-                        {/* Task Status (Static Logic Display) */}
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Task Status</Text>
-                            <View style={[styles.input, styles.disabledInput]}>
-                                <Text style={styles.disabledInputText}>
-                                    {assignedEngineer ? "Not Yet Started" : "Not Yet Assigned"}
-                                </Text>
-                            </View>
-                        </View>
-
-                        {/* Assign To Dropdown */}
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Assign To:</Text>
-                            <TouchableOpacity
-                                style={styles.dropdown}
-                                onPress={() => setEngineerModalVisible(true)}
-                            >
-                                <Text style={styles.dropdownText}>
-                                    {assignedEngineer ? assignedEngineer.name : "Select Engineer (Optional)"}
-                                </Text>
-                                <Ionicons name="chevron-down" size={20} color="#333" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <TouchableOpacity style={styles.uploadButton} onPress={handleUploadPDF}>
-                            <Text style={styles.uploadButtonText}>
-                                {selectedPDF ? `File: ${selectedPDF.name}` : "Upload PDF (Optional)"}
-                            </Text>
-                        </TouchableOpacity>
-
-                        {/* Bottom Actions */}
-                        <View style={styles.bottomActions}>
-                            <TouchableOpacity style={styles.resetButton} onPress={() => router.replace('/new-task')}>
-                                <Text style={styles.resetButtonText}>Reset</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity style={styles.saveButton} onPress={handleSaveTask} disabled={loading}>
-                                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>Save</Text>}
+                        <View style={[styles.inputGroup, { marginBottom: 0 }]}>
+                            <Text style={styles.label}>Due Date</Text>
+                            <TouchableOpacity style={styles.inputWithIcon} onPress={openDatePicker}>
+                                <Ionicons name="calendar-outline" size={20} color="#6389DA" />
+                                <Text style={styles.flexInputText}>{dueDate.toLocaleDateString()} {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
+
+                    {/* Section: Assignment */}
+                    <Text style={styles.sectionHeader}>CLASSIFICATION</Text>
+                    <View style={styles.card}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>Category</Text>
+                            <TouchableOpacity style={styles.dropdown} onPress={() => setCategoryModalVisible(true)}>
+                                <Text style={selectedCategory ? styles.dropdownValue : styles.dropdownPlaceholder}>
+                                    {selectedCategory ? `${selectedCategory.categoryName} (${selectedCategory.category})` : "Select a category"}
+                                </Text>
+                                <Ionicons name="chevron-down" size={20} color="#888" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={[styles.inputGroup, { marginBottom: 0 }]}>
+                            <Text style={styles.label}>Assign Engineer</Text>
+                            <TouchableOpacity style={styles.dropdown} onPress={() => setEngineerModalVisible(true)}>
+                                <Text style={assignedEngineer ? styles.dropdownValue : styles.dropdownPlaceholder}>
+                                    {assignedEngineer ? assignedEngineer.name : "Choose an engineer (Optional)"}
+                                </Text>
+                                <Ionicons name="person-add-outline" size={20} color="#888" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    <TouchableOpacity style={styles.attachmentBtn} onPress={handleUploadPDF}>
+                        <Ionicons name="document-attach-outline" size={20} color="#6389DA" />
+                        <Text style={styles.attachmentBtnText}>
+                            {selectedPDF ? selectedPDF.name : "Attach Documentation (PDF)"}
+                        </Text>
+                    </TouchableOpacity>
+
+                    <View style={{ height: 40 }} />
                 </ScrollView>
             </KeyboardAvoidingView>
 
-            {/* --- MODAL FOR CATEGORY DROPDOWN --- */}
-            <Modal visible={isCategoryModalVisible} transparent animationType="fade">
+            {/* Modals remain the same logic as your original code */}
+            <Modal visible={isCategoryModalVisible} transparent animationType="slide">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Select Category</Text>
                         <ScrollView>
                             {categories.map((item) => (
-                                <TouchableOpacity
-                                    key={item.id}
-                                    style={styles.modalItem}
-                                    onPress={() => {
-                                        setSelectedCategory(item);
-                                        setCategoryModalVisible(false);
-                                    }}
-                                >
+                                <TouchableOpacity key={item.id} style={styles.modalItem} onPress={() => { setSelectedCategory(item); setCategoryModalVisible(false); }}>
                                     <Text style={styles.itemTitle}>{item.categoryName}</Text>
                                     <Text style={styles.itemSubtitle}>Priority: {item.category}</Text>
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
-                        <TouchableOpacity onPress={() => setCategoryModalVisible(false)} style={styles.closeBtn}>
-                            <Text style={{ color: '#6389DA', fontWeight: 'bold' }}>Cancel</Text>
-                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setCategoryModalVisible(false)} style={styles.closeBtn}><Text style={styles.closeBtnText}>Cancel</Text></TouchableOpacity>
                     </View>
                 </View>
             </Modal>
 
-            {/* --- MODAL FOR ENGINEER DROPDOWN --- */}
-            <Modal visible={isEngineerModalVisible} transparent animationType="fade">
+            <Modal visible={isEngineerModalVisible} transparent animationType="slide">
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalTitle}>Select Engineer</Text>
                         <ScrollView>
-                            <TouchableOpacity
-                                style={styles.modalItem}
-                                onPress={() => { setAssignedEngineer(null); setEngineerModalVisible(false); }}
-                            >
+                            <TouchableOpacity style={styles.modalItem} onPress={() => { setAssignedEngineer(null); setEngineerModalVisible(false); }}>
                                 <Text style={styles.itemTitle}>Do Not Assign Yet</Text>
                             </TouchableOpacity>
                             {engineers.map((eng) => (
-                                <TouchableOpacity
-                                    key={eng.id}
-                                    style={styles.modalItem}
-                                    onPress={() => {
-                                        setAssignedEngineer(eng);
-                                        setEngineerModalVisible(false);
-                                    }}
-                                >
+                                <TouchableOpacity key={eng.id} style={styles.modalItem} onPress={() => { setAssignedEngineer(eng); setEngineerModalVisible(false); }}>
                                     <View style={styles.engineerRow}>
-                                        <View>
-                                            <Text style={styles.itemTitle}>{eng.name}</Text>
-                                            <Text style={styles.itemSubtitle}>{eng.skillSet || 'General Technician'}</Text>
-                                        </View>
-
-                                        {/* Availability Tag */}
-                                        <View style={[
-                                            styles.statusBadge,
-                                            { backgroundColor: eng.availability === 'Available' ? '#E7F9ED' : '#FFEBEB' }
-                                        ]}>
-                                            <View style={[
-                                                styles.statusDot,
-                                                { backgroundColor: eng.availability === 'Available' ? '#2ecc71' : '#e74c3c' }
-                                            ]} />
-                                            <Text style={[
-                                                styles.statusText,
-                                                { color: eng.availability === 'Available' ? '#1e8449' : '#c0392b' }
-                                            ]}>
-                                                {eng.availability || 'Unknown'}
-                                            </Text>
+                                        <View><Text style={styles.itemTitle}>{eng.name}</Text><Text style={styles.itemSubtitle}>{eng.skillSet || 'General Technician'}</Text></View>
+                                        <View style={[styles.statusBadge, { backgroundColor: eng.availability === 'Available' ? '#E7F9ED' : '#FFEBEB' }]}>
+                                            <Text style={[styles.statusText, { color: eng.availability === 'Available' ? '#1e8449' : '#c0392b' }]}>{eng.availability}</Text>
                                         </View>
                                     </View>
                                 </TouchableOpacity>
                             ))}
                         </ScrollView>
-                        <TouchableOpacity onPress={() => setEngineerModalVisible(false)} style={styles.closeBtn}>
-                            <Text style={{ color: '#6389DA', fontWeight: 'bold', marginTop: 10 }}>Cancel</Text>
-                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setEngineerModalVisible(false)} style={styles.closeBtn}><Text style={styles.closeBtnText}>Cancel</Text></TouchableOpacity>
                     </View>
                 </View>
             </Modal>
@@ -378,60 +317,89 @@ export default function NewTaskScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#EEE' },
-    headerTitle: { fontSize: 22, fontWeight: 'bold' },
+    container: { flex: 1, backgroundColor: '#F8FAFC' },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#FFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E2E8F0'
+    },
+    headerTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B' },
+    headerActionText: { fontSize: 16, fontWeight: '600', color: '#6389DA' },
     backButton: { padding: 4 },
-    scrollContent: { padding: 15 },
-    formCard: { backgroundColor: '#F0F7FF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#E1E9F5' },
-    inputGroup: { marginBottom: 18 },
-    labelRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    label: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 8 },
-    charCount: { fontSize: 12, color: '#999' },
-    input: { backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 15, paddingVertical: 12, fontSize: 15, borderWidth: 1, borderColor: '#D6E4F0' },
+    scrollContent: { padding: 16 },
+    sectionHeader: { fontSize: 12, fontWeight: '700', color: '#94A3B8', marginBottom: 8, marginLeft: 4, letterSpacing: 1 },
+    card: {
+        backgroundColor: '#FFF',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 15,
+        elevation: 2,
+    },
+    inputGroup: { marginBottom: 20 },
+    labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    label: { fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 8 },
+    charCount: { fontSize: 11, color: '#94A3B8' },
+    input: {
+        backgroundColor: '#F1F5F9',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: '#1E293B'
+    },
     textArea: { height: 100, textAlignVertical: 'top' },
     row: { flexDirection: 'row' },
-    dropdown: { backgroundColor: '#fff', borderRadius: 12, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#D6E4F0' },
-    dropdownText: { fontSize: 14, color: '#333' },
-    disabledInput: { backgroundColor: '#E8E8E8', borderColor: '#CCC' },
-    disabledInputText: { color: '#777' },
-    uploadButton: { backgroundColor: '#6389DA', borderRadius: 25, paddingVertical: 14, alignItems: 'center', marginTop: 10, marginBottom: 25 },
-    uploadButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-    bottomActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    resetButton: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-    resetButtonText: { color: '#333', fontSize: 16, fontWeight: '500' },
-    saveButton: { flex: 1, backgroundColor: '#6389DA', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginLeft: 20 },
-    saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-
-    // Modal Styles for Dropdowns
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-    modalContent: { width: '85%', backgroundColor: '#fff', borderRadius: 20, padding: 20, maxHeight: '70%' },
-    modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
-    modalItem: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#EEE' },
-    itemTitle: { fontSize: 16, color: '#333' },
-    itemSubtitle: { fontSize: 13, color: '#888' },
-    closeBtn: { marginTop: 15, alignItems: 'center' },
-    engineerRow: {
+    inputWithIcon: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F1F5F9',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        height: 48
+    },
+    flexInput: { flex: 1, marginLeft: 8, fontSize: 15, color: '#1E293B' },
+    flexInputText: { flex: 1, marginLeft: 8, fontSize: 15, color: '#1E293B' },
+    dropdown: {
+        backgroundColor: '#F1F5F9',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
+        alignItems: 'center'
     },
-    statusBadge: {
+    dropdownValue: { fontSize: 15, color: '#1E293B' },
+    dropdownPlaceholder: { fontSize: 15, color: '#94A3B8' },
+    attachmentBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
+        justifyContent: 'center',
+        paddingVertical: 16,
+        borderWidth: 1,
+        borderColor: '#6389DA',
+        borderStyle: 'dashed',
+        borderRadius: 16,
+        backgroundColor: '#F0F7FF'
     },
-    statusDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        marginRight: 6,
-    },
-    statusText: {
-        fontSize: 12,
-        fontWeight: '600',
-        textTransform: 'capitalize'
-    },
+    attachmentBtnText: { marginLeft: 8, color: '#6389DA', fontWeight: '600' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+    modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
+    modalTitle: { fontSize: 20, fontWeight: '700', marginBottom: 20, color: '#1E293B' },
+    modalItem: { paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+    itemTitle: { fontSize: 16, fontWeight: '600', color: '#1E293B' },
+    itemSubtitle: { fontSize: 13, color: '#64748B', marginTop: 2 },
+    closeBtn: { marginTop: 20, alignItems: 'center', paddingBottom: 10 },
+    closeBtnText: { color: '#6389DA', fontWeight: '700', fontSize: 16 },
+    engineerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+    statusText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
 });
