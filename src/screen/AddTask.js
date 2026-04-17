@@ -21,12 +21,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../firebaseConfig';
+import { useUser } from '../context/UserContext';
 
 export default function NewTaskScreen() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const navigation = useNavigation();
     const isDirtyRef = useRef(false);
+    const {userData} = useUser();
 
     // --- FORM STATES ---
     const [taskName, setTaskName] = useState('');
@@ -214,7 +216,7 @@ export default function NewTaskScreen() {
                 attachedFile: selectedPDF ? selectedPDF.uri : "",
                 createdDate: Timestamp.now(),
                 createdBy: currentUser?.uid || "Anonymous",
-                creatorName: currentUser?.displayName || "System User"
+                creatorName: userData?.name || userData?.username || "System User",
             };
 
             await addDoc(collection(db, 'task'), newTask);
@@ -533,16 +535,7 @@ export default function NewTaskScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8FAFC' },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: '#FFF',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0'
-    },
+    header: { flexDirection: 'row',alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
     headerTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B' },
     headerActionText: { fontSize: 16, fontWeight: '600', color: '#6389DA' },
     backButton: { padding: 4 },
@@ -620,22 +613,8 @@ const styles = StyleSheet.create({
     engineerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
     statusText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-    footer: {
-        flexDirection: 'row',
-        paddingHorizontal: 16,
-        paddingVertical: 20,
-        backgroundColor: '#FFF',
-        borderTopWidth: 1,
-        borderTopColor: '#E2E8F0',
-        alignItems: 'center',
-    },
-    resetButton: {
-        flex: 1,
-        height: 54,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
+    footer: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 20, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E2E8F0', alignItems: 'center', },
+    resetButton: { flex: 1, height: 54, justifyContent: 'center', alignItems: 'center', marginRight: 12, },
     resetButtonText: {
         color: '#94A3B8',
         fontSize: 16,
