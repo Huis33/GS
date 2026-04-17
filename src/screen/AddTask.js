@@ -139,6 +139,8 @@ export default function NewTaskScreen() {
     useEffect(() => {
         if (taskName || description || customer || assignedTo.length > 0) {
             isDirtyRef.current = true;
+        } else {
+            isDirtyRef.current = false;
         }
     }, [taskName, description, customer, assignedTo]);
 

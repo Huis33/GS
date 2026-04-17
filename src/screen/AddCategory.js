@@ -31,14 +31,13 @@ export default function AddCategoryScreen() {
     const handleSave = async () => {
         // Validation
         if (!categoryName || !description || !priority) {
-            Alert.alert("Error", "Please fill in all fields including Priority.");
+            Alert.alert("Error", "Please fill in all fields.");
             return;
         }
 
         try {
             // Show a loading state if you have one, or just proceed
             await addPriorityCategory(categoryName, description, priority);
-
             Alert.alert("Success", "Category added to database!");
             isDirtyRef.current = false;
             router.back(); // Navigate back to the list
@@ -86,22 +85,18 @@ export default function AddCategoryScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()}>
+                <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <Ionicons name="arrow-back" size={28} color="black" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Add Category</Text>
-                <View style={{ width: 28 }} /> {/* Spacing for alignment */}
+                <View style={{ width: 28 }} />
             </View>
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={{ flex: 1 }}
-            >
-                <ScrollView contentContainerStyle={styles.scrollContent}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+                <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+
                     <View style={styles.formCard}>
-                        {/* Category Name Input */}
                         <Text style={styles.label}>Category Name</Text>
                         <View style={styles.inputWrapper}>
                             <TextInput
@@ -114,7 +109,6 @@ export default function AddCategoryScreen() {
                         </View>
                         <Text style={styles.charCount}>{categoryName.length}/50</Text>
 
-                        {/* Description Input */}
                         <Text style={styles.label}>Description</Text>
                         <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
                             <TextInput
@@ -129,28 +123,16 @@ export default function AddCategoryScreen() {
                         </View>
                         <Text style={styles.charCount}>{description.length}/500</Text>
 
-                        {/* Priority Picker (Simulation of your dropdown) */}
                         <Text style={styles.label}>Priority</Text>
                         <View style={styles.dropdownContainer}>
                             <TouchableOpacity
-                                style={[
-                                    styles.dropdown,
-                                    isDropdownOpen && styles.dropdownActive
-                                ]}
+                                style={[styles.dropdown, isDropdownOpen && styles.dropdownActive]}
                                 onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-                                activeOpacity={0.8}
                             >
-                                <Text style={[
-                                    styles.dropdownText,
-                                    !priority && { color: '#9CA3AF' }
-                                ]}>
-                                    {priority || "Select Priority Level"}
+                                <Text style={[styles.dropdownText, !priority && { color: '#9CA3AF' }]}>
+                                    {priority ? priority : "Select Priority Level"}
                                 </Text>
-                                <Ionicons
-                                    name={isDropdownOpen ? "chevron-up" : "chevron-down"}
-                                    size={20}
-                                    color="#333"
-                                />
+                                <Ionicons name={isDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color="#333" />
                             </TouchableOpacity>
 
                             {isDropdownOpen && (
@@ -165,9 +147,7 @@ export default function AddCategoryScreen() {
                                             }}
                                         >
                                             <Text style={styles.optionText}>{option}</Text>
-                                            {priority === option && (
-                                                <Ionicons name="checkmark" size={18} color="#2F80ED" />
-                                            )}
+                                            {priority === option && <Ionicons name="checkmark" size={18} color="#2F80ED" />}
                                         </TouchableOpacity>
                                     ))}
                                 </View>
@@ -175,7 +155,6 @@ export default function AddCategoryScreen() {
                         </View>
                     </View>
 
-                    {/* Submit Button */}
                     <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                         <Text style={styles.saveButtonText}>Add Category</Text>
                     </TouchableOpacity>
