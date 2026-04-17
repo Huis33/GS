@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -12,11 +12,13 @@ import {
     Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { addPriorityCategory } from '../service/priorityService';
 
 export default function AddCategoryScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
+    const isDirtyRef = useRef(false);
 
     // Form States
     const [categoryName, setCategoryName] = useState('');
@@ -38,11 +40,49 @@ export default function AddCategoryScreen() {
             await addPriorityCategory(categoryName, description, priority);
 
             Alert.alert("Success", "Category added to database!");
+            isDirtyRef.current = false;
             router.back(); // Navigate back to the list
         } catch (error) {
             Alert.alert("Upload Failed", "Could not save to Firebase. Please try again.");
         }
     };
+
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            // If the ref is false, we just let the user navigate away
+            if (!isDirtyRef.current) {
+                return;
+            }
+
+            // If changes exist, stop the navigation and show the alert
+            e.preventDefault();
+
+            Alert.alert(
+                'Unsaved Changes',
+                'You have unsaved information. Are you sure you want to leave?',
+                [
+                    { text: "Stay", style: 'cancel', onPress: () => { } },
+                    {
+                        text: 'Discard',
+                        style: 'destructive',
+                        // resume the navigation action that was blocked
+                        onPress: () => navigation.dispatch(e.data.action),
+                    },
+                ]
+            );
+        });
+
+        return unsubscribe;
+    }, [navigation]);
+
+    // Monitor changes to form fields
+    useEffect(() => {
+        if (categoryName.length > 0 || description.length > 0 || priority !== null) {
+            isDirtyRef.current = true;
+        } else {
+            isDirtyRef.current = false;
+        }
+    }, [categoryName, description, priority]);
 
     return (
         <SafeAreaView style={styles.container}>

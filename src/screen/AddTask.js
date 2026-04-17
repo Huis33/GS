@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker'; // Required dependency
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { addDoc, collection, getDocs, Timestamp } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -25,6 +25,8 @@ import { auth, db } from '../../firebaseConfig';
 export default function NewTaskScreen() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const navigation = useNavigation();
+    const isDirtyRef = useRef(false);
 
     // --- FORM STATES ---
     const [taskName, setTaskName] = useState('');
@@ -133,6 +135,13 @@ export default function NewTaskScreen() {
         fetchData();
     }, []);
 
+    // This effect runs whenever these values change
+    useEffect(() => {
+        if (taskName || description || customer || assignedTo.length > 0) {
+            isDirtyRef.current = true;
+        }
+    }, [taskName, description, customer, assignedTo]);
+
     const handleUploadPDF = async () => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
@@ -178,6 +187,7 @@ export default function NewTaskScreen() {
 
             await addDoc(collection(db, 'task'), newTask);
             Alert.alert("Success", "Task created successfully!");
+            isDirtyRef.current = false;
             router.back();
         } catch (error) {
             Alert.alert("Error", "Failed to save task.");
@@ -199,6 +209,34 @@ export default function NewTaskScreen() {
             }
         });
     };
+
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            // If the ref is false, we just let the user navigate away
+            if (!isDirtyRef.current) {
+                return;
+            }
+
+            // If changes exist, stop the navigation and show the alert
+            e.preventDefault();
+
+            Alert.alert(
+                'Unsaved Changes',
+                'You have started filling out this task. Are you sure you want to discard your progress?',
+                [
+                    { text: "Stay", style: 'cancel', onPress: () => { } },
+                    {
+                        text: 'Discard',
+                        style: 'destructive',
+                        // This tells the navigator to resume the action we stopped
+                        onPress: () => navigation.dispatch(e.data.action),
+                    },
+                ]
+            );
+        });
+
+        return unsubscribe;
+    }, [navigation]);
 
     return (
         <SafeAreaView style={styles.container}>
