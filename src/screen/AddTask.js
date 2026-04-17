@@ -137,12 +137,30 @@ export default function NewTaskScreen() {
 
     // This effect runs whenever these values change
     useEffect(() => {
-        if (taskName || description || customer || assignedTo.length > 0) {
+        // Check if any field has been modified from its initial state
+        const hasTaskName = taskName.trim().length > 0;
+        const hasDescription = description.trim().length > 0;
+        const hasCustomer = customer.trim().length > 0;
+        const hasContact = contact.trim().length > 0;
+        const hasLocation = location.trim().length > 0;
+        const hasCategory = selectedCategory !== null;
+        const hasEngineers = assignedTo.length > 0;
+        const hasPDF = selectedPDF !== null;
+
+        // Optional: Check if date has changed from the initial "end of day" default
+        // This part is tricky because 'dueDate' is an object. 
+        // Usually, checking if the user touched the name/category is enough.
+
+        if (hasTaskName || hasDescription || hasCustomer || hasContact ||
+            hasLocation || hasCategory || hasEngineers || hasPDF) {
             isDirtyRef.current = true;
         } else {
             isDirtyRef.current = false;
         }
-    }, [taskName, description, customer, assignedTo]);
+    }, [
+        taskName, description, customer, contact,
+        location, selectedCategory, assignedTo, selectedPDF
+    ]);
 
     const handleUploadPDF = async () => {
         try {
@@ -159,8 +177,20 @@ export default function NewTaskScreen() {
     };
 
     const handleSaveTask = async () => {
-        if (!taskName || !selectedCategory) {
-            Alert.alert("Required", "Please fill in Task Name and Category.");
+        // 1. Validation for ALL compulsory fields
+        const isFormValid =
+            taskName.trim() !== '' &&
+            description.trim() !== '' &&
+            customer.trim() !== '' &&
+            contact.trim() !== '' &&
+            location.trim() !== '' &&
+            selectedCategory !== null;
+
+        if (!isFormValid) {
+            Alert.alert(
+                "Missing Information",
+                "Please fill in all required fields:\n• Task Name\n• Description\n• Customer\n• Contact No.\n• Location\n• Category"
+            );
             return;
         }
 
@@ -178,10 +208,10 @@ export default function NewTaskScreen() {
                 dueDate: Timestamp.fromDate(dueDate),
                 // Status Logic: Changes if an engineer is assigned
                 status: assignedTo.length > 0 ? "Not Yet Started" : "Not Yet Assigned",
-                assignedTo: assignedTo.map(e => e.name), // Saves as an array in Firestore
-                assignedIds: assignedTo.map(e => e.id), // Better for querying later
+                assignedTo: assignedTo.map(e => e.name),
+                assignedIds: assignedTo.map(e => e.id),
                 hasAttachment: !!selectedPDF,
-                attachedFile: selectedPDF ? selectedPDF.uri : "", // In production, upload to Storage first
+                attachedFile: selectedPDF ? selectedPDF.uri : "",
                 createdDate: Timestamp.now(),
                 createdBy: currentUser?.uid || "Anonymous",
                 creatorName: currentUser?.displayName || "System User"

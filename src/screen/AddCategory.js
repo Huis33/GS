@@ -5,7 +5,6 @@ import {
     StyleSheet,
     TextInput,
     TouchableOpacity,
-    SafeAreaView,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -14,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useNavigation } from 'expo-router';
 import { addPriorityCategory } from '../service/priorityService';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AddCategoryScreen() {
     const router = useRouter();
