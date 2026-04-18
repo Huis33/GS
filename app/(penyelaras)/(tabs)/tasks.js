@@ -5,20 +5,26 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    ActivityIndicator
+    ActivityIndicator,
+    Dimensions
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useUser } from '../../../src/context/UserContext'; // Path to your context
 import { useRouter } from 'expo-router';
 import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
 import { db, auth } from "../../../firebaseConfig";
 
 export default function ReadOnlyTasksPage() {
     const router = useRouter();
-    const { userData } = useUser();
     const [activeTab, setActiveTab] = useState('To be done');
     const [taskList, setTaskList] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const PRIORITY_CONFIG = {
+        'Critical': { bg: '#FDECEC', text: '#D32F2F', icon: 'alert-circle' },
+        'High': { bg: '#FEF0E6', text: '#E65100', icon: 'arrow-up-circle' },
+        'Medium': { bg: '#FFF9E6', text: '#F57C00', icon: 'remove-circle' },
+        'Low': { bg: '#F1F9F1', text: '#388E3C', icon: 'arrow-down-circle' },
+    };
 
     useEffect(() => {
         const currentUser = auth.currentUser;
@@ -41,7 +47,9 @@ export default function ReadOnlyTasksPage() {
                 id: doc.id,
                 ...doc.data(),
                 // Convert Firestore Timestamp to readable string
-                displayDate: doc.data().dueDate?.toDate().toLocaleDateString() || 'No Date'
+                displayDate: doc.data().dueDate?.toDate().toLocaleDateString('en-GB', {
+                    day: 'numeric', month: 'short'
+                }) || 'No Date'
             }));
             setTaskList(tasks);
             setLoading(false);
@@ -57,61 +65,101 @@ export default function ReadOnlyTasksPage() {
         return activeTab === 'Done' ? task.status === 'Done' : task.status !== 'Done';
     });
 
-    const getStatusColor = (status) => {
+    const getStatusStyles = (status) => {
         switch (status) {
-            case 'Not Yet Assigned': return '#E0E0E0'; // Grey
-            case 'Not Yet Started': return '#FFDCDC';
-            case 'In Progress': return '#F5EFEB';
-            case 'Done': return '#D5FFD6';
-            default: return '#FFF';
+            case 'Not Yet Started':
+                return { bg: '#FFDCDC', text: '#C0392B', bar: '#E74C3C', width: '1%' };
+            case 'In Progress':
+                return { bg: '#F5EFEB', text: '#A67C52', bar: '#D35400', width: '50%' };
+            case 'Done':
+                return { bg: '#D5FFD6', text: '#1E8449', bar: '#27AE60', width: '100%' };
+            case 'Not Yet Assigned':
+                return { bg: '#F1F5F9', text: '#475569', bar: '#94A3B8', width: '0%' };
+            default:
+                return { bg: '#FFF', text: '#374151', bar: '#9CA3AF', width: '0%' };
         }
     };
 
     const TaskCard = ({ item }) => {
-        // Mock progress calculation since DB doesn't have a progress % yet
-        const progressValue = item.status === 'Done' ? 1 : 0;
+        // FIXED: Using statusStyle consistently
+        const statusStyle = getStatusStyles(item.status);
+        const priorityStyle = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG['Medium'];
 
         return (
-            <View style={styles.card}>
-                <TouchableOpacity
-                    onPress={() => router.push({
-                        pathname: '/task-detail',
-                        params: { id: item.id } // Pass ID to detail page
-                    })}
-                    activeOpacity={0.7}
-                >
-                    <View style={styles.cardHeader}>
-                        <Ionicons name="calendar-outline" size={18} color="#666" />
-                        <Text style={styles.dateText}>Due: {item.displayDate}</Text>
+            <TouchableOpacity
+                style={styles.card}
+                onPress={() => router.push({ pathname: '/task-detail', params: { id: item.id } })}
+                activeOpacity={0.9}
+            >
+                <View style={styles.cardHeader}>
+                    {/* FIXED: Priority Badge now uses your PRIORITY_CONFIG */}
+                    <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.bg }]}>
+                        <Ionicons name={priorityStyle.icon} size={14} color={priorityStyle.text} />
+                        <Text style={[styles.priorityText, { color: priorityStyle.text }]}>{item.priority}</Text>
                     </View>
-
-                    <Text style={styles.cardTitle}>{item.name}</Text>
-                    <Text style={styles.cardDescription} numberOfLines={2}>
-                        {item.taskDescription}
-                    </Text>
-
-                    <View style={styles.progressContainer}>
-                        <Text style={styles.progressLabel}>Status</Text>
-                        <Text style={styles.progressPercent}>{item.priority} Priority</Text>
+                    <View style={styles.dateBadge}>
+                        <Ionicons name="time-outline" size={14} color="#6B7280" />
+                        <Text style={styles.dateText}>{item.displayDate}</Text>
                     </View>
+                </View>
 
-                    {/* Progress Bar based on status */}
-                    <View style={styles.progressBarBg}>
-                        <View style={[
-                            styles.progressBarFill,
-                            { width: item.status === 'Done' ? '100%' : '10%' }
-                        ]} />
-                    </View>
+                <Text style={styles.cardTitle}>{item.name}</Text>
+                <Text style={styles.cardDescription} numberOfLines={2}>
+                    {item.taskDescription}
+                </Text>
 
-                    <View style={[
-                        styles.statusBadge,
-                        { backgroundColor: getStatusColor(item.status) }
-                    ]}>
-                        <Text style={styles.statusText}>{item.status}</Text>
+                <View style={styles.progressSection}>
+                    <div style={styles.progressInfo}>
+                        <Text style={styles.progressLabel}>Status Progress: </Text>
+                        <Text style={styles.progressPercent}>{statusStyle.width}</Text>
+                    </div>
+                    <View style={styles.progressBarContainer}>
+                        <View style={[styles.progressBarFill, { width: statusStyle.width, backgroundColor: statusStyle.bar }]} />
                     </View>
-                </TouchableOpacity>
-            </View>
+                </View>
+
+                <View style={styles.cardFooter}>
+                    <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+                        <Text style={[styles.statusText, { color: statusStyle.text }]}>{item.status}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                </View>
+            </TouchableOpacity>
         );
+    };
+
+    const getProgressWidth = (status) => {
+        switch (status) {
+            case 'Not Yet Assigned':
+            case 'Not Yet Started':
+                return '2%';
+
+            case 'In Progress':
+                return '50%'; // you can adjust later
+
+            case 'Done':
+                return '100%';
+
+            default:
+                return '0%';
+        }
+    };
+
+    const getProgressColor = (status) => {
+        switch (status) {
+            case 'Not Yet Assigned':
+            case 'Not Yet Started':
+                return '#B0B0B0'; // grey
+
+            case 'In Progress':
+                return '#F39C12'; // orange
+
+            case 'Done':
+                return '#27AE60'; // green
+
+            default:
+                return '#B0B0B0';
+        }
     };
 
     return (
@@ -132,25 +180,22 @@ export default function ReadOnlyTasksPage() {
             </View>
 
             {loading ? (
-                <View style={styles.center}>
-                    <ActivityIndicator size="large" color="#2F80ED" />
-                </View>
+                <View style={styles.center}><ActivityIndicator size="large" color="#2F80ED" /></View>
             ) : (
-                <ScrollView contentContainerStyle={styles.scrollContent}>
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     {displayedTasks.length > 0 ? (
                         displayedTasks.map((task) => <TaskCard key={task.id} item={task} />)
                     ) : (
-                        <Text style={styles.emptyText}>No tasks found.</Text>
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="clipboard-outline" size={60} color="#E5E7EB" />
+                            <Text style={styles.emptyText}>No tasks here yet</Text>
+                        </View>
                     )}
                 </ScrollView>
             )}
 
-            <TouchableOpacity
-                style={styles.fab}
-                onPress={() => router.push('/add-task')}
-                activeOpacity={0.8}
-            >
-                <Ionicons name="add" size={35} color="white" />
+            <TouchableOpacity style={styles.fab} onPress={() => router.push('/add-task')}>
+                <Ionicons name="add" size={30} color="white" />
             </TouchableOpacity>
         </View>
     );
@@ -159,43 +204,49 @@ export default function ReadOnlyTasksPage() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    tabBar: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E0E0E0', backgroundColor: '#F5F9FF' },
+    tabBar: {
+        flexDirection: 'row',
+        backgroundColor: '#FFF',
+        paddingTop: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E2E8F0'
+    },
     tabItem: { flex: 1, paddingVertical: 15, alignItems: 'center' },
     activeTabItem: { borderBottomWidth: 3, borderBottomColor: '#2F80ED' },
-    tabText: { fontSize: 16, color: '#999', fontWeight: '500' },
+    tabText: { fontSize: 15, color: '#94A3B8', fontWeight: '600' },
     activeTabText: { color: '#2F80ED' },
-    scrollContent: { padding: 20 },
+    scrollContent: { padding: 16 },
     card: { backgroundColor: '#C8D9FF', borderRadius: 20, padding: 20, marginBottom: 20, elevation: 5 },
-    cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-    dateText: { marginLeft: 6, color: '#666', fontSize: 14 },
-    cardTitle: { fontSize: 24, fontWeight: 'bold', color: '#000', marginBottom: 10 },
-    cardDescription: { fontSize: 15, color: '#333', lineHeight: 20, marginBottom: 15 },
-    progressContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-    progressLabel: { fontSize: 14, color: '#666' },
-    progressPercent: { fontSize: 14, color: '#666', fontWeight: 'bold' },
-    progressBarBg: { height: 6, backgroundColor: 'rgba(0,0,0,0.1)', borderRadius: 3, marginBottom: 20 },
-    progressBarFill: { height: '100%', backgroundColor: '#27AE60', borderRadius: 3 },
-    statusBadge: {
-        paddingVertical: 10,
-        paddingHorizontal: 15,
-        borderRadius: 15,
-        borderWidth: 1,
-        borderColor: '#333',
-        alignSelf: 'flex-end'
-    },
-    statusText: { fontSize: 14, fontWeight: '600', color: '#000' },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+    priorityBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    priorityDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
+    priorityText: { fontSize: 12, fontWeight: '600', color: '#475569' },
+    dateBadge: { flexDirection: 'row', alignItems: 'center' },
+    dateText: { marginLeft: 4, color: '#64748B', fontSize: 12, fontWeight: '500' },
+
+    cardTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B', marginBottom: 6 },
+    cardDescription: { fontSize: 14, color: '#64748B', lineHeight: 20, marginBottom: 16 },
+
+    progressSection: { marginBottom: 16 },
+    progressInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+    progressLabel: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
+    progressPercent: { fontSize: 12, color: '#475569', fontWeight: '700' },
+    progressBarContainer: { height: 6, backgroundColor: '#E2E8F0', borderRadius: 3, overflow: 'hidden' },
+    progressBarFill: { height: '100%', borderRadius: 3 },
+
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+    statusBadge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
+    statusText: { fontSize: 12, fontWeight: '700' },
+
     fab: {
         position: 'absolute',
-        bottom: 30,
-        right: 30,
+        bottom: 30, right: 25,
         backgroundColor: '#2F80ED',
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        justifyContent: 'center',
-        alignItems: 'center',
-        elevation: 8,
-        zIndex: 999,
+        width: 56, height: 56,
+        borderRadius: 28,
+        justifyContent: 'center', alignItems: 'center',
+        elevation: 5, shadowColor: '#2F80ED', shadowOpacity: 0.4, shadowRadius: 10
     },
-    emptyText: { textAlign: 'center', marginTop: 50, color: '#999', fontSize: 16 }
+    emptyContainer: { alignItems: 'center', marginTop: 100 },
+    emptyText: { marginTop: 10, color: '#94A3B8', fontSize: 16, fontWeight: '500' }
 });

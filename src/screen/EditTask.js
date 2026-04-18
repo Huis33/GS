@@ -119,6 +119,29 @@ export default function EditTaskScreen() {
         fetchAllData();
     }, [id]);
 
+    useEffect(() => {
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            if (!isDirtyRef.current || updating) return;
+
+            // Prevent default behavior
+            e.preventDefault();
+
+            Alert.alert(
+                "Unsaved Changes",
+                "You have unsaved changes. Are you sure you want to leave?",
+                [
+                    { text: "Stay", style: "cancel", onPress: () => { } },
+                    {
+                        text: "Discard",
+                        style: "destructive",
+                        onPress: () => navigation.dispatch(e.data.action),
+                    },
+                ]
+            );
+        });
+        return unsubscribe;
+    }, [navigation]);
+
     // --- FORM LOGIC (REUSED FROM NEW TASK) ---
     const handleDatePickerChange = (event, selectedDate) => {
         if (event.type === 'dismissed') return;
@@ -193,9 +216,8 @@ export default function EditTaskScreen() {
 
             await updateDoc(docRef, updatedData);
             isDirtyRef.current = false;
-            Alert.alert("Success", "Task updated successfully!", [
-                { text: "OK", onPress: () => router.back() }
-            ]);
+            Alert.alert("Success", "Task updated successfully!");
+            router.back();
         } catch (error) {
             Alert.alert("Error", "Failed to update task.");
         } finally {
@@ -218,7 +240,7 @@ export default function EditTaskScreen() {
 
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="close-outline" size={30} color="#333" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Edit Task</Text>
@@ -292,14 +314,24 @@ export default function EditTaskScreen() {
 
                     <Text style={styles.sectionHeader}>CLASSIFICATION</Text>
                     <View style={styles.card}>
-                        <TouchableOpacity style={styles.dropdown} onPress={() => setCategoryModalVisible(true)}>
+                        {/* Category Label */}
+                        <Text style={styles.label}>Task Category</Text>
+                        <TouchableOpacity
+                            style={styles.dropdown}
+                            onPress={() => setCategoryModalVisible(true)}
+                        >
                             <Text style={selectedCategory ? styles.dropdownValue : styles.dropdownPlaceholder}>
                                 {selectedCategory ? `${selectedCategory.categoryName} (${selectedCategory.category})` : "Select a category"}
                             </Text>
                             <Ionicons name="chevron-down" size={20} color="#888" />
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={[styles.dropdown, { marginTop: 20 }]} onPress={() => setEngineerModalVisible(true)}>
+                        {/* Engineer Label */}
+                        <Text style={[styles.label, { marginTop: 20 }]}>Assigned Engineers</Text>
+                        <TouchableOpacity
+                            style={styles.dropdown}
+                            onPress={() => setEngineerModalVisible(true)}
+                        >
                             <Text style={assignedTo.length > 0 ? styles.dropdownValue : styles.dropdownPlaceholder}>
                                 {assignedTo.length > 0 ? assignedTo.map(e => e.name).join(', ') : "Choose engineers (Optional)"}
                             </Text>
@@ -328,9 +360,70 @@ export default function EditTaskScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* Include your Modals here (Category & Engineer) - Same as NewTaskScreen */}
-            {/* ... Modal Code ... */}
+            <Modal visible={isCategoryModalVisible} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Select Category</Text>
+                        <ScrollView style={styles.modalScrollView}>
+                            {categories.map((cat) => (
+                                <TouchableOpacity 
+                                    key={cat.id} 
+                                    style={[
+                                        styles.modalItem, 
+                                        selectedCategory?.id === cat.id && styles.selectedItem
+                                    ]}
+                                    onPress={() => {
+                                        setSelectedCategory(cat);
+                                        setCategoryModalVisible(false);
+                                        isDirtyRef.current = true; // Mark as dirty
+                                    }}
+                                >
+                                    <Text style={styles.itemTitle}>{cat.categoryName}</Text>
+                                    <Text style={styles.itemSubtitle}>{cat.category}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                        <TouchableOpacity onPress={() => setCategoryModalVisible(false)} style={styles.closeBtn}>
+                            <Text style={styles.closeBtnText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
 
+            {/* --- 5. ENGINEER MODAL --- */}
+            <Modal visible={isEngineerModalVisible} animationType="slide" transparent>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Assign Engineers</Text>
+                        <ScrollView style={styles.modalScrollView}>
+                            {engineers.map((eng) => {
+                                const isSelected = assignedTo.some(item => item.id === eng.id);
+                                return (
+                                    <TouchableOpacity 
+                                        key={eng.id} 
+                                        style={[styles.engineerCard, isSelected && styles.selectedEngineerCard]}
+                                        onPress={() => toggleEngineer(eng)}
+                                    >
+                                        <View style={styles.engineerInfo}>
+                                            <Text style={styles.itemTitle}>{eng.name}</Text>
+                                            <Text style={styles.itemSubtitle}>{eng.username}</Text>
+                                        </View>
+                                        {isSelected && <Ionicons name="checkmark-circle" size={24} color="#6389DA" />}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                        <View style={styles.modalFooter}>
+                            <TouchableOpacity 
+                                style={styles.confirmButton} 
+                                onPress={() => setEngineerModalVisible(false)}
+                            >
+                                <Text style={styles.confirmButtonText}>Confirm Selection ({assignedTo.length})</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }

@@ -5,19 +5,8 @@ import { useRouter, useNavigation } from 'expo-router';
 import { addDoc, collection, getDocs, Timestamp } from 'firebase/firestore';
 import React, { useEffect, useState, useRef } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-    Keyboard
+    ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar,
+    StyleSheet, Text, TextInput, TouchableOpacity, View, Keyboard
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../firebaseConfig';
@@ -109,13 +98,36 @@ export default function NewTaskScreen() {
         );
     };
 
+    const priorityOrder = {
+        Critical: 1,
+        High: 2,
+        Medium: 3,
+        Low: 4,
+    };
+
     // --- FETCH DATA ---
     useEffect(() => {
         const fetchData = async () => {
             try {
                 // 1. Fetch Priorities (Categories)
                 const catSnap = await getDocs(collection(db, 'priority'));
-                setCategories(catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+                const catList = catSnap.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                const sortedCategories = catList.sort((a, b) => {
+                    const priorityDiff =
+                        (priorityOrder[a.category] || 99) -
+                        (priorityOrder[b.category] || 99);
+
+                    if (priorityDiff !== 0) return priorityDiff;
+
+                    // If same priority → sort alphabetically
+                    return a.categoryName.localeCompare(b.categoryName);
+                });
+
+                setCategories(sortedCategories);
 
                 // 2. Fetch Engineers
                 const userSnap = await getDocs(collection(db, 'user'));
@@ -126,7 +138,16 @@ export default function NewTaskScreen() {
                     }))
                     .filter(u => u.role === 'Engineer');
 
-                setEngineers(engineerData);
+                const sortedEngineers = engineerData.sort((a, b) => {
+                    // Available first
+                    if (a.availabilityStatus === "Available" && b.availabilityStatus !== "Available") return -1;
+                    if (a.availabilityStatus !== "Available" && b.availabilityStatus === "Available") return 1;
+
+                    // Optional: sort by name after
+                    return a.name.localeCompare(b.name);
+                });
+
+                setEngineers(sortedEngineers);
 
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -476,9 +497,9 @@ export default function NewTaskScreen() {
                                             {isSelected ? (
                                                 <Ionicons name="checkmark-circle" size={24} color="#6389DA" />
                                             ) : (
-                                                <View style={[styles.statusBadge, { backgroundColor: eng.availability === 'Available' ? '#E7F9ED' : '#FFEBEB' }]}>
-                                                    <Text style={[styles.statusText, { color: eng.availability === 'Available' ? '#1e8449' : '#c0392b' }]}>
-                                                        {eng.availability}
+                                                    <View style={[styles.statusBadge, { backgroundColor: eng.availabilityStatus === 'Available' ? '#E7F9ED' : '#FFEBEB' }]}>
+                                                        <Text style={[styles.statusText, { color: eng.availabilityStatus === 'Available' ? '#1e8449' : '#c0392b' }]}>
+                                                            {eng.availabilityStatus}
                                                     </Text>
                                                 </View>
                                             )}
@@ -541,66 +562,21 @@ const styles = StyleSheet.create({
     backButton: { padding: 4 },
     scrollContent: { padding: 16 },
     sectionHeader: { fontSize: 12, fontWeight: '700', color: '#94A3B8', marginBottom: 8, marginLeft: 4, letterSpacing: 1 },
-    card: {
-        backgroundColor: '#FFF',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 15,
-        elevation: 2,
-    },
+    card: { backgroundColor: '#FFF', borderRadius: 16, padding: 16, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 15, elevation: 2, },
     inputGroup: { marginBottom: 20 },
     labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     label: { fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 8 },
     charCount: { fontSize: 11, color: '#94A3B8' },
-    input: {
-        backgroundColor: '#F1F5F9',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        fontSize: 15,
-        color: '#1E293B'
-    },
+    input: { backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: '#1E293B' },
     textArea: { height: 100, textAlignVertical: 'top' },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between'
-    },
-    inputWithIcon: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F1F5F9',
-        borderRadius: 12,
-        paddingHorizontal: 10,
-        height: 48
-    },
+    row: { flexDirection: 'row', justifyContent: 'space-between' },
+    inputWithIcon: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 10, height: 48 },
     flexInput: { flex: 1, marginLeft: 6, fontSize: 14, color: '#1E293B' },
     flexInputText: { flex: 1, marginLeft: 8, fontSize: 15, color: '#1E293B' },
-    dropdown: {
-        backgroundColor: '#F1F5F9',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    },
+    dropdown: { backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     dropdownValue: { fontSize: 15, color: '#1E293B' },
     dropdownPlaceholder: { fontSize: 15, color: '#94A3B8' },
-    attachmentBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        borderWidth: 1,
-        borderColor: '#6389DA',
-        borderStyle: 'dashed',
-        borderRadius: 16,
-        backgroundColor: '#F0F7FF'
-    },
+    attachmentBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderWidth: 1, borderColor: '#6389DA', borderStyle: 'dashed', borderRadius: 16, backgroundColor: '#F0F7FF' },
     attachmentBtnText: { marginLeft: 8, color: '#6389DA', fontWeight: '600' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
@@ -615,73 +591,22 @@ const styles = StyleSheet.create({
     statusText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
     footer: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 20, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E2E8F0', alignItems: 'center', },
     resetButton: { flex: 1, height: 54, justifyContent: 'center', alignItems: 'center', marginRight: 12, },
-    resetButtonText: {
-        color: '#94A3B8',
-        fontSize: 16,
-        fontWeight: '600',
+    resetButtonText: { color: '#94A3B8', fontSize: 16, fontWeight: '600', },
+    saveButton: { flex: 2, height: 54, backgroundColor: '#6389DA', borderRadius: 14, justifyContent: 'center', alignItems: 'center', shadowColor: '#6389DA', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5, },
+    saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700',},
+    iosPickerContainer: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 40, // Space for the bottom of the screen
     },
-    saveButton: {
-        flex: 2,
-        height: 54,
-        backgroundColor: '#6389DA',
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#6389DA',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 5,
-    },
-    saveButtonText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    iosPickerContainer: {
-        backgroundColor: 'white',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        paddingBottom: 40, // Space for the bottom of the screen
-    },
-    iosPickerHeader: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    iosDoneText: {
-        color: '#6389DA',
-        fontWeight: '700',
-        fontSize: 16,
-    },
+    iosPickerHeader: { flexDirection: 'row', justifyContent: 'flex-end', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', },
+    iosDoneText: { color: '#6389DA', fontWeight: '700', fontSize: 16, },
     selectedItem: {
         backgroundColor: '#F0F7FF', // Light blue tint
-        borderColor: '#6389DA',
-        borderLeftWidth: 4,
+        borderColor: '#6389DA', borderLeftWidth: 4,
     },
     // --- Modal Specific Styles ---
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
-    },
-    modalScrollView: {
-        marginBottom: 10,
-    },
-    engineerCard: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-        borderRadius: 12,
-        backgroundColor: '#F8FAFC',
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, },
+    modalScrollView: { marginBottom: 10,},
+    engineerCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16,
+        borderRadius: 12, backgroundColor: '#F8FAFC', marginBottom: 12, borderWidth: 1, borderColor: '#F1F5F9', },
     selectedEngineerCard: {
         backgroundColor: '#F0F7FF',
         borderColor: '#6389DA',
@@ -691,24 +616,9 @@ const styles = StyleSheet.create({
     engineerInfo: {
         flex: 1, // This prevents the text from pushing icons off screen
     },
-    engineerStatus: {
-        marginLeft: 12,
-        alignItems: 'flex-end',
+    engineerStatus: { marginLeft: 12, alignItems: 'flex-end',},
+    modalFooter: { paddingTop: 12, paddingBottom: Platform.OS === 'ios' ? 20 : 0, // Extra space for iPhone home bar
     },
-    modalFooter: {
-        paddingTop: 12,
-        paddingBottom: Platform.OS === 'ios' ? 20 : 0, // Extra space for iPhone home bar
-    },
-    confirmButton: {
-        backgroundColor: '#6389DA',
-        borderRadius: 14,
-        height: 54,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    confirmButtonText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '700',
-    },
+    confirmButton: { backgroundColor: '#6389DA', borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', },
+    confirmButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700', },
 });

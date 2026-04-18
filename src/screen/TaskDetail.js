@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -11,11 +11,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import * as FileSystem from 'expo-file-system';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { db, auth } from '../../firebaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+
+const PRIORITY_CONFIG = {
+    'Critical': { bg: '#FDECEC', text: '#D32F2F', icon: 'alert-circle' },
+    'High': { bg: '#FEF0E6', text: '#E65100', icon: 'arrow-up-circle' },
+    'Medium': { bg: '#FFF9E6', text: '#F57C00', icon: 'remove-circle' },
+    'Low': { bg: '#F1F9F1', text: '#388E3C', icon: 'arrow-down-circle' },
+};
 
 export default function TaskDetailsScreen() {
     const router = useRouter();
@@ -25,11 +32,13 @@ export default function TaskDetailsScreen() {
     const [loading, setLoading] = useState(true);
     const isOwner = auth.currentUser?.uid === task?.createdBy;
 
-    useEffect(() => {
-        if (id) {
-            fetchTaskDetails();
-        }
-    }, [id]);
+    useFocusEffect(
+        useCallback(() => {
+            if (id) {
+                fetchTaskDetails();
+            }
+        }, [id])
+    );
 
     const fetchTaskDetails = async () => {
         try {
@@ -61,16 +70,26 @@ export default function TaskDetailsScreen() {
     const formatDateTime = (timestamp) => {
         if (!timestamp) return 'N/A';
         const dateObj = timestamp.toDate();
-
-        const datePart = dateObj.toLocaleDateString('en-US', {
+        return dateObj.toLocaleDateString('en-US', {
             day: 'numeric', month: 'long', year: 'numeric'
-        });
-
-        const timePart = dateObj.toLocaleTimeString('en-US', {
+        }) + ` at ` + dateObj.toLocaleTimeString('en-US', {
             hour: 'numeric', minute: '2-digit', hour12: true
         });
+    };
 
-        return `${datePart} at ${timePart}`;
+    const getStatusStyles = (status) => {
+        switch (status) {
+            case 'Not Yet Started':
+                return { bg: '#FFDCDC', text: '#C0392B' };
+            case 'In Progress':
+                return { bg: '#F5EFEB', text: '#A67C52' };
+            case 'Done':
+                return { bg: '#D5FFD6', text: '#1E8449' };
+            case 'Not Yet Assigned':
+                return { bg: '#F1F5F9', text: '#475569' };
+            default:
+                return { bg: '#FFF', text: '#374151' };
+        }
     };
 
     const handleDownload = async () => {
@@ -82,7 +101,7 @@ export default function TaskDetailsScreen() {
         try {
             const fileUri = task.attachedFile;
             // Get the file name from the URI
-            const fileName = fileUri.split('/').pop() || 'attachment.pdf';
+            const fileName = `Task_${id.substring(0, 5)}.pdf`;
             const downloadDest = `${FileSystem.documentDirectory}${fileName}`;
 
             // Download the file
@@ -93,13 +112,17 @@ export default function TaskDetailsScreen() {
 
             const result = await downloadResumable.downloadAsync();
 
-            if (result) {
-                // Open the file sharing/preview menu
-                await Sharing.shareAsync(result.uri);
+            if (result && result.uri) {
+                // Check if sharing is available on the device
+                if (await Sharing.isAvailableAsync()) {
+                    await Sharing.shareAsync(result.uri);
+                } else {
+                    Alert.alert("Success", "File downloaded to documents.");
+                }
             }
         } catch (error) {
             console.error("Download error:", error);
-            Alert.alert("Error", "Could not download the file.");
+            Alert.alert("Error", "The file link may be expired or inaccessible.");
         }
     };
 
@@ -118,6 +141,9 @@ export default function TaskDetailsScreen() {
             </View>
         );
     }
+
+    const priorityStyle = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG['Medium'];
+    const statusStyle = getStatusStyles(task.status);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -152,9 +178,9 @@ export default function TaskDetailsScreen() {
 
                 {/* Priority and Dates */}
                 <View style={styles.metaRow}>
-                    <View style={styles.priorityBadge}>
-                        <Ionicons name="alert-circle-outline" size={18} color="#856404" />
-                        <Text style={styles.priorityText}>{task.priority}</Text>
+                    <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.bg }]}>
+                        <Ionicons name={priorityStyle.icon} size={18} color={priorityStyle.text} />
+                        <Text style={[styles.priorityText, { color: priorityStyle.text }]}>{task.priority}</Text>
                     </View>
                     <View style={styles.dateInfo}>
                         {/* Call the function here */}
@@ -176,7 +202,12 @@ export default function TaskDetailsScreen() {
                     <DetailItem label="Location" value={task.location} />
                     <DetailItem label="Category" value={task.categoryName} />
                     <DetailItem label="Creator" value={task.creatorName} />
-                    <DetailItem label="Status" value={task.status} />
+                    <View style={styles.detailItemRow}>
+                        <Text style={styles.infoLabel}>Progress: </Text>
+                        <View style={[styles.inlineStatusBadge, { backgroundColor: statusStyle.bg }]}>
+                            <Text style={[styles.statusTabText, { color: statusStyle.text }]}>{task.status}</Text>
+                        </View>
+                    </View>
 
                     <View style={styles.divider} />
 
@@ -187,43 +218,27 @@ export default function TaskDetailsScreen() {
                 {/* Assigned To Section */}
                 <View style={styles.assignedSection}>
                     <Text style={styles.sectionTitle}>Assigned Engineers:</Text>
-                    <View style={styles.avatarContainer}>
-                        {task.assignedTo && task.assignedTo.length > 0 ? (
-                            task.assignedTo.map((name, index) => (
-                                <View key={index} style={styles.personRow}>
-                                    <View style={styles.avatar}>
-                                        <Text style={styles.avatarText}>{name.charAt(0)}</Text>
-                                    </View>
-                                    <Text style={styles.personName}>{name}</Text>
-                                </View>
-                            ))
-                        ) : (
-                            <Text style={styles.noAssignment}>No one assigned yet</Text>
-                        )}
-                    </View>
+                    {task.assignedTo?.map((name, index) => (
+                        <View key={index} style={styles.personRow}>
+                            <View style={styles.avatar}><Text style={styles.avatarText}>{name.charAt(0)}</Text></View>
+                            <Text style={styles.personName}>{name}</Text>
+                        </View>
+                    )) || <Text style={styles.noAssignment}>No one assigned yet</Text>}
                 </View>
 
                 {/* --- ATTACHMENT SECTION --- */}
-                {task.attachedFile ? (
-                    <View style={styles.attachmentSection}>
-                        <Text style={styles.sectionTitle}>Attachments</Text>
-                        <TouchableOpacity
-                            style={styles.attachmentCard}
-                            onPress={handleDownload}
-                        >
+                <View style={styles.attachmentSection}>
+                    <Text style={styles.sectionTitle}>Attachments</Text>
+                    {task.attachedFile ? (
+                        <TouchableOpacity style={styles.attachmentCard} onPress={handleDownload}>
                             <View style={styles.attachmentInfo}>
                                 <Ionicons name="document-text" size={24} color="#2F80ED" />
                                 <Text style={styles.fileName}>Task Attachment</Text>
                             </View>
                             <Ionicons name="download-outline" size={24} color="#666" />
                         </TouchableOpacity>
-                    </View>
-                ) : (
-                    <View style={styles.attachmentSection}>
-                        <Text style={styles.sectionTitle}>Attachments</Text>
-                        <Text style={styles.noAssignment}>No files attached.</Text>
-                    </View>
-                )}
+                    ) : <Text style={styles.noAssignment}>No files attached.</Text>}
+                </View>
             </ScrollView>
         </SafeAreaView>
     );
@@ -239,114 +254,38 @@ const DetailItem = ({ label, value, isBold }) => (
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
     centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0'
-    },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
     headerTitle: { fontSize: 20, fontWeight: 'bold' },
     backButton: { padding: 4 },
     content: { padding: 20 },
     title: { fontSize: 26, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 5 },
     taskID: { fontSize: 14, color: '#888', marginBottom: 20 },
     metaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 25 },
-    priorityBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFF3CD',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 12,
-        marginRight: 20
-    },
-    priorityText: { color: '#856404', fontWeight: 'bold', marginLeft: 6 },
-    dateInfo: { justifyContent: 'center' },
-    dateLabel: { fontSize: 13, color: '#666' },
+    priorityBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, marginRight: 15 },
+    priorityText: { fontWeight: 'bold', marginLeft: 6, fontSize: 14 },
+    dateInfo: { flex: 1 },
+    dateLabel: { fontSize: 12, color: '#666' },
     dateValue: { color: '#333', fontWeight: '600' },
-    detailsCard: {
-        backgroundColor: '#F0F7FF',
-        borderRadius: 24,
-        padding: 20,
-        marginBottom: 20,
-        borderWidth: 1,
-        borderColor: '#E1E9F5'
-    },
+    detailsCard: { backgroundColor: '#F0F7FF', borderRadius: 24, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: '#E1E9F5' },
     boldLabel: { fontSize: 18, fontWeight: 'bold', color: '#003366', marginBottom: 15 },
-    detailItemRow: { flexDirection: 'row', marginBottom: 10, flexWrap: 'wrap' },
+    detailItemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' },
     infoLabel: { fontSize: 15, color: '#555', fontWeight: '500' },
     infoValue: { fontSize: 15, color: '#1A1A1A', flexShrink: 1 },
     infoValueBold: { fontWeight: 'bold' },
+    inlineStatusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginLeft: 4 },
+    statusTabText: { fontSize: 13, fontWeight: '700' },
     divider: { height: 1, backgroundColor: '#D6E4F0', marginVertical: 15 },
     descriptionLabel: { fontSize: 15, fontWeight: 'bold', color: '#333', marginBottom: 8 },
     descriptionText: { fontSize: 14, color: '#444', lineHeight: 22 },
-    assignedSection: {
-        backgroundColor: '#F8FAFC', // Slightly different shade to differentiate
-        borderRadius: 24,
-        padding: 20,
-        marginBottom: 30,
-        borderWidth: 1,
-        borderColor: '#E2E8F0'
-    },
-    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#003366', marginBottom: 15 },
-    avatarContainer: { flexDirection: 'column' },
+    assignedSection: { backgroundColor: '#F8FAFC', borderRadius: 24, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: '#E2E8F0' },
+    sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#003366', marginBottom: 12 },
     personRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    avatar: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: '#FFFFFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-        borderWidth: 1,
-        borderColor: '#6389DA'
-    },
+    avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', marginRight: 12, borderWidth: 1, borderColor: '#6389DA' },
     avatarText: { color: '#6389DA', fontWeight: 'bold', fontSize: 14 },
     personName: { fontSize: 16, color: '#1A1A1A', fontWeight: '500' },
-    noAssignment: { fontSize: 15, color: '#94A3B8', fontStyle: 'italic' },
-    attachmentSection: {
-        backgroundColor: '#F0F7FF',
-        borderRadius: 24,
-        padding: 20,
-        marginBottom: 40, // Extra space at bottom
-        borderWidth: 1,
-        borderColor: '#E1E9F5'
-    },
-    attachmentCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#FFF',
-        padding: 15,
-        borderRadius: 12,
-        marginTop: 10,
-        borderWidth: 1,
-        borderColor: '#D6E4F0'
-    },
-    attachmentInfo: {
-        flexDirection: 'row',
-        alignItems: 'center'
-    },
-    fileName: {
-        marginLeft: 10,
-        fontSize: 16,
-        color: '#333',
-        fontWeight: '500'
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#003366',
-        marginBottom: 5
-    },
-    noAssignment: {
-        fontSize: 15,
-        color: '#94A3B8',
-        fontStyle: 'italic',
-        marginTop: 5
-    }
+    noAssignment: { fontSize: 14, color: '#94A3B8', fontStyle: 'italic', marginTop: 5 },
+    attachmentSection: { backgroundColor: '#F0F7FF', borderRadius: 24, padding: 20, marginBottom: 40, borderWidth: 1, borderColor: '#E1E9F5' },
+    attachmentCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginTop: 10, borderWidth: 1, borderColor: '#D6E4F0' },
+    attachmentInfo: { flexDirection: 'row', alignItems: 'center' },
+    fileName: { marginLeft: 10, fontSize: 16, color: '#333', fontWeight: '500' },
 });
