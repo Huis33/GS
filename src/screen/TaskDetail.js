@@ -1,13 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    StatusBar,
-    ActivityIndicator,
-    Alert
+    View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator,
+    Alert, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -91,7 +85,7 @@ export default function TaskDetailsScreen() {
                 return { bg: '#FFF', text: '#374151' };
         }
     };
-
+    
     const handleDownload = async () => {
         if (!task.attachedFile) {
             Alert.alert("Error", "No file attached to this task.");
@@ -100,29 +94,55 @@ export default function TaskDetailsScreen() {
 
         try {
             const fileUri = task.attachedFile;
-            // Get the file name from the URI
             const fileName = `Task_${id.substring(0, 5)}.pdf`;
+
+            // Handle Web Platform
+            if (Platform.OS === 'web') {
+                // For web, we just open the link in a new tab or trigger a download
+                const link = document.createElement('a');
+                link.href = fileUri;
+                link.download = fileName;
+                link.target = "_blank";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                return;
+            }
+
+            // Handle Mobile Platform (iOS/Android)
             const downloadDest = `${FileSystem.documentDirectory}${fileName}`;
+            const fileInfo = await FileSystem.getInfoAsync(downloadDest);
 
-            // Download the file
-            const downloadResumable = FileSystem.createDownloadResumable(
-                fileUri,
-                downloadDest
-            );
-
-            const result = await downloadResumable.downloadAsync();
-
-            if (result && result.uri) {
-                // Check if sharing is available on the device
+            const shareFile = async (uri) => {
                 if (await Sharing.isAvailableAsync()) {
-                    await Sharing.shareAsync(result.uri);
+                    await Sharing.shareAsync(uri);
                 } else {
-                    Alert.alert("Success", "File downloaded to documents.");
+                    Alert.alert("Success", "File is saved to your device.");
                 }
+            };
+
+            const performDownload = async () => {
+                const downloadResumable = FileSystem.createDownloadResumable(fileUri, downloadDest);
+                const result = await downloadResumable.downloadAsync();
+                if (result?.uri) await shareFile(result.uri);
+            };
+
+            if (fileInfo.exists) {
+                Alert.alert(
+                    "File Already Exists",
+                    "You have already downloaded this attachment. Use existing or download fresh?",
+                    [
+                        { text: "Use Existing", onPress: () => shareFile(downloadDest) },
+                        { text: "Download Again", onPress: () => performDownload(), style: "destructive" },
+                        { text: "Cancel", style: "cancel" }
+                    ]
+                );
+            } else {
+                await performDownload();
             }
         } catch (error) {
             console.error("Download error:", error);
-            Alert.alert("Error", "The file link may be expired or inaccessible.");
+            Alert.alert("Error", "Could not process the file. If you are on Web, ensure the URL is a valid http link.");
         }
     };
 
