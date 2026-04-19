@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker';
-import { useRouter, useLocalSearchParams, useNavigation } from 'expo-router';
-import { doc, getDoc, updateDoc, getDocs, collection, Timestamp } from 'firebase/firestore';
-import React, { useEffect, useState, useRef } from 'react';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { collection, doc, getDoc, getDocs, Timestamp, updateDoc } from 'firebase/firestore';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Keyboard,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -16,8 +17,7 @@ import {
     Text,
     TextInput,
     TouchableOpacity,
-    View,
-    Keyboard
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../firebaseConfig';
@@ -62,7 +62,7 @@ export default function EditTaskScreen() {
                 const catSnap = await getDocs(collection(db, 'priority'));
                 const catList = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setCategories(catList);
-                setProgress(data.progress ?? 0);
+                
 
                 const userSnap = await getDocs(collection(db, 'user'));
                 const engineerData = userSnap.docs
@@ -92,7 +92,7 @@ export default function EditTaskScreen() {
                     setLocation(data.location || "");
                     setDueDate(data.dueDate.toDate());
                     setExistingPDFUrl(data.attachedFile || "");
-
+                    setProgress(data.progress ?? 0);
                     // Match Category
                     const matchedCat = catList.find(c => c.categoryName === data.categoryName);
                     setSelectedCategory(matchedCat || null);
