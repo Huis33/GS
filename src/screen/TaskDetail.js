@@ -1,15 +1,22 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system/legacy';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import { doc, getDoc } from 'firebase/firestore';
+import React, { useCallback, useState } from 'react';
+import { Alert, Platform } from 'react-native';
+
 import {
-    View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator,
-    Alert, Platform
+    ActivityIndicator,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import { db, auth } from '../../firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../../firebaseConfig';
 
 const PRIORITY_CONFIG = {
     'Critical': { bg: '#FDECEC', text: '#D32F2F', icon: 'alert-circle' },
@@ -91,14 +98,13 @@ export default function TaskDetailsScreen() {
             Alert.alert("Error", "No file attached to this task.");
             return;
         }
-
+    
         try {
             const fileUri = task.attachedFile;
             const fileName = `Task_${id.substring(0, 5)}.pdf`;
-
-            // Handle Web Platform
+    
+            // --- 1. WEB PLATFORM ---
             if (Platform.OS === 'web') {
-                // For web, we just open the link in a new tab or trigger a download
                 const link = document.createElement('a');
                 link.href = fileUri;
                 link.download = fileName;
@@ -108,44 +114,50 @@ export default function TaskDetailsScreen() {
                 document.body.removeChild(link);
                 return;
             }
-
-            // Handle Mobile Platform (iOS/Android)
-            const downloadDest = `${FileSystem.documentDirectory}${fileName}`;
-            const fileInfo = await FileSystem.getInfoAsync(downloadDest);
-
-            const shareFile = async (uri) => {
-                if (await Sharing.isAvailableAsync()) {
-                    await Sharing.shareAsync(uri);
+    
+            setLoading(true);
+    
+            // --- 2. DOWNLOAD TO CACHE FIRST ---
+            // We download the file to the app's internal cache before moving it to public storage
+            const tempUri = `${FileSystem.cacheDirectory}${fileName}`;
+            const downloadResumable = FileSystem.createDownloadResumable(fileUri, tempUri);
+            const { uri } = await downloadResumable.downloadAsync();
+    
+            // --- 3. SAVE TO LOCAL DEVICE ---
+            if (Platform.OS === 'android') {
+                // Android: Use Storage Access Framework (SAF)
+                // This allows the user to pick a folder (like Downloads) to save the PDF
+                const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+                
+                if (permissions.granted) {
+                    const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+                    
+                    // Create the file in the selected directory
+                    const newFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+                        permissions.directoryUri,
+                        fileName,
+                        'application/pdf'
+                    );
+    
+                    // Write the data to the new file
+                    await FileSystem.writeAsStringAsync(newFileUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+                    Alert.alert("Success", "File saved to your selected folder.");
                 } else {
-                    Alert.alert("Success", "File is saved to your device.");
+                    Alert.alert("Permission Denied", "Could not save the file without folder access.");
                 }
-            };
-
-            const performDownload = async () => {
-                const downloadResumable = FileSystem.createDownloadResumable(fileUri, downloadDest);
-                const result = await downloadResumable.downloadAsync();
-                if (result?.uri) await shareFile(result.uri);
-            };
-
-            if (fileInfo.exists) {
-                Alert.alert(
-                    "File Already Exists",
-                    "You have already downloaded this attachment. Use existing or download fresh?",
-                    [
-                        { text: "Use Existing", onPress: () => shareFile(downloadDest) },
-                        { text: "Download Again", onPress: () => performDownload(), style: "destructive" },
-                        { text: "Cancel", style: "cancel" }
-                    ]
-                );
             } else {
-                await performDownload();
+                // iOS: Direct local saving is not allowed by Apple. 
+                // Sharing.shareAsync is the "Save to Files" standard for iOS.
+                await Sharing.shareAsync(uri);
             }
         } catch (error) {
             console.error("Download error:", error);
-            Alert.alert("Error", "Could not process the file. If you are on Web, ensure the URL is a valid http link.");
+            Alert.alert("Error", "Failed to process download.");
+        } finally {
+            setLoading(false);
         }
     };
-
+    
     if (loading) {
         return (
             <View style={styles.centerContainer}>

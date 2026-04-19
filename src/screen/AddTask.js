@@ -1,12 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker'; // Required dependency
-import { useRouter, useNavigation } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { addDoc, collection, getDocs, Timestamp } from 'firebase/firestore';
-import React, { useEffect, useState, useRef } from 'react';
+import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar,
-    StyleSheet, Text, TextInput, TouchableOpacity, View, Keyboard
+    ActivityIndicator, Alert,
+    Keyboard,
+    KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar,
+    StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../firebaseConfig';
@@ -200,7 +203,7 @@ export default function NewTaskScreen() {
     };
 
     const handleSaveTask = async () => {
-        // 1. Validation for ALL compulsory fields
+        // 1. Validation for ALL compulsory fields (Keep your existing validation)
         const isFormValid =
             taskName.trim() !== '' &&
             description.trim() !== '' &&
@@ -208,18 +211,40 @@ export default function NewTaskScreen() {
             contact.trim() !== '' &&
             location.trim() !== '' &&
             selectedCategory !== null;
-
+    
         if (!isFormValid) {
             Alert.alert(
                 "Missing Information",
-                "Please fill in all required fields:\n• Task Name\n• Description\n• Customer\n• Contact No.\n• Location\n• Category"
+                "Please fill in all required fields."
             );
             return;
         }
-
+    
         setLoading(true);
         try {
             const currentUser = auth.currentUser;
+            let firebaseUrl = "";
+    
+            // --- NEW UPLOAD LOGIC START ---
+            if (selectedPDF) {
+                // A. Convert URI to Blob (Necessary for Expo/React Native)
+                const response = await fetch(selectedPDF.uri);
+                const blob = await response.blob();
+    
+                // B. Create a storage reference
+                const storage = getStorage();
+                const fileExtension = selectedPDF.name.split('.').pop();
+                const fileName = `attachments/${Date.now()}.${fileExtension}`;
+                const storageRef = ref(storage, fileName);
+    
+                // C. Upload the file
+                const snapshot = await uploadBytes(storageRef, blob);
+                
+                // D. Get the public Download URL
+                firebaseUrl = await getDownloadURL(snapshot.ref);
+            }
+            // --- NEW UPLOAD LOGIC END ---
+    
             const newTask = {
                 name: taskName,
                 taskDescription: description,
@@ -229,18 +254,21 @@ export default function NewTaskScreen() {
                 categoryName: selectedCategory.categoryName,
                 priority: selectedCategory.category,
                 dueDate: Timestamp.fromDate(dueDate),
-                // Status Logic: Changes if an engineer is assigned
                 status: assignedTo.length > 0 ? "Not Yet Started" : "Not Yet Assigned",
                 assignedTo: assignedTo.map(e => e.name),
                 assignedIds: assignedTo.map(e => e.id),
                 hasAttachment: !!selectedPDF,
-                attachedFile: selectedPDF ? selectedPDF.uri : "",
+                
+                // UPDATE: Use the firebaseUrl instead of selectedPDF.uri
+                attachedFile: firebaseUrl, 
+                
                 createdDate: Timestamp.now(),
                 createdBy: currentUser?.uid || "Anonymous",
                 creatorName: userData?.name || userData?.username || "System User",
             };
-
+    
             await addDoc(collection(db, 'task'), newTask);
+            
             Alert.alert("Success", "Task created successfully!");
             isDirtyRef.current = false;
             router.back();
