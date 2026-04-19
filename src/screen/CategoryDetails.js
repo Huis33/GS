@@ -224,13 +224,15 @@ export default function CategoryDetailScreen() {
                             <Text style={styles.label}>Priority</Text>
                             <View style={styles.dropdownContainer}>
                                 <TouchableOpacity
-                                    style={[styles.dropdown, isDropdownOpen && styles.dropdownActive]}
+                                    style={[
+                                        styles.dropdown,
+                                        isDropdownOpen && isEditing && styles.dropdownActive
+                                    ]}
                                     onPress={() => isEditing && setIsDropdownOpen(!isDropdownOpen)}
-                                    activeOpacity={0.8}
                                     disabled={!isEditing}
                                 >
                                     <Text style={[styles.dropdownText, !priority && { color: '#9CA3AF' }]}>
-                                        {priority || "Select Priority Level"}
+                                        {priority ? priority : "Select Priority Level"}
                                     </Text>
                                     <Ionicons
                                         name={isDropdownOpen ? "chevron-up" : "chevron-down"}
@@ -240,17 +242,20 @@ export default function CategoryDetailScreen() {
                                 </TouchableOpacity>
 
                                 {isDropdownOpen && isEditing && (
-                                    <View style={styles.dropdownMenu}>
+                                    <View style={styles.dropdownList}>
                                         {priorityOptions.map((option) => (
                                             <TouchableOpacity
                                                 key={option}
-                                                style={styles.dropdownItem}
+                                                style={styles.dropdownOption}
                                                 onPress={() => {
                                                     setPriority(option);
                                                     setIsDropdownOpen(false);
                                                 }}
                                             >
-                                                <Text style={styles.itemText}>{option}</Text>
+                                                <Text style={styles.optionText}>{option}</Text>
+                                                {priority === option && (
+                                                    <Ionicons name="checkmark" size={18} color="#2F80ED" />
+                                                )}
                                             </TouchableOpacity>
                                         ))}
                                     </View>
@@ -258,8 +263,8 @@ export default function CategoryDetailScreen() {
                             </View>
                         </View>
 
-                        {/* Delete Button (Only visible during editing) */}
-                        {isEditing && (
+                        {/* Delete Button - Moved down to ensure it is below the dropdown logic */}
+                        {isEditing && !isDropdownOpen && (
                             <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
                                 <Ionicons name="trash-outline" size={20} color="#EB5757" />
                                 <Text style={styles.deleteButtonText}>Delete Category</Text>
@@ -280,75 +285,35 @@ const styles = StyleSheet.create({
     scrollContent: { padding: 20 },
     detailCard: { borderRadius: 15, padding: 20, borderWidth: 2 },
     inputGroup: { marginBottom: 20 },
-    labelRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
+    labelRow: { flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'center', // Ensures they stay vertically centered with each other
         marginBottom: 8,      // Space between the label row and the text input
     },
-    charCount: {
-        fontSize: 12,
-        color: '#999',
+    charCount: { fontSize: 12, color: '#999',
         marginLeft: 10,       // ADD THIS: Creates a minimum gap even if they squeeze
     },
     label: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
-    whiteInput: {
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        padding: 12,
-        fontSize: 15,
-        color: '#333',
-        borderWidth: 1,
-        borderColor: '#E5E7EB'
-    },
+    whiteInput: { backgroundColor: '#fff', borderRadius: 10, padding: 12, fontSize: 15, color: '#333', borderWidth: 1, borderColor: '#E5E7EB' },
     textArea: { height: 120, textAlignVertical: 'top' },
-    dropdownContainer: { zIndex: 1000 },
-    dropdown: {
-        backgroundColor: '#fff',
-        borderRadius: 10,
-        padding: 12,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#E5E7EB'
+    dropdownContainer: {
+        position: 'relative', // Key for absolute positioning of the list
+        zIndex: 5000,
     },
-    dropdownActive: { borderColor: '#2F80ED', borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+    dropdown: { backgroundColor: '#fff', borderRadius: 10, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#E5E7EB', },
+    dropdownActive: { borderColor: '#2F80ED', borderBottomLeftRadius: 0, borderBottomRightRadius: 0, },
     dropdownText: { fontSize: 15, color: '#333' },
-    dropdownMenu: {
-        backgroundColor: '#fff',
-        borderLeftWidth: 1,
-        borderRightWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: '#E5E7EB',
-        borderBottomLeftRadius: 10,
-        borderBottomRightRadius: 10,
-        position: 'absolute',
-        top: '100%',
-        left: 0,
-        right: 0,
-        elevation: 5,
-        zIndex: 2000
-    },
+    dropdownMenu: { backgroundColor: '#fff', borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#E5E7EB', borderBottomLeftRadius: 10, borderBottomRightRadius: 10, position: 'absolute', top: '100%', left: 0, right: 0, elevation: 5, zIndex: 2000 },
     dropdownItem: { padding: 15, borderTopWidth: 1, borderTopColor: '#F3F4F6' },
     itemText: { fontSize: 15, color: '#333' },
-
-    // Delete Button Styles
-    deleteButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: 10,
-        paddingVertical: 12,
-        borderWidth: 1,
-        borderColor: '#EB5757',
-        borderRadius: 10,
-        backgroundColor: '#fff'
+    dropdownList: { backgroundColor: '#fff', borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: '#E5E7EB', borderBottomLeftRadius: 10, borderBottomRightRadius: 10, position: 'absolute',
+        top: '100%', // Sits directly below the dropdown header
+        left: 0, right: 0, elevation: 5, // For Android shadow
+        zIndex: 6000, // Forces it above other elements
     },
-    deleteButtonText: {
-        color: '#EB5757',
-        fontWeight: 'bold',
-        marginLeft: 8,
-        fontSize: 15
-    }
+    dropdownOption: { padding: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#F3F4F6', },
+    optionText: { fontSize: 15, color: '#333', },
+    deleteButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 20, paddingVertical: 12, borderWidth: 1, borderColor: '#EB5757', borderRadius: 10, backgroundColor: '#fff',
+        // Critical: no zIndex here so it stays behind the dropdown
+    },
+    deleteButtonText: { color: '#EB5757', fontWeight: 'bold', marginLeft: 8, fontSize: 15, },
 });

@@ -3,9 +3,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { doc, getDoc } from 'firebase/firestore';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Alert, Platform } from 'react-native';
-
 import {
     ActivityIndicator,
     ScrollView,

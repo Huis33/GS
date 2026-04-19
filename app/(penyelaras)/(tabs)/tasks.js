@@ -64,24 +64,29 @@ export default function ReadOnlyTasksPage() {
         return activeTab === 'Done' ? task.status === 'Done' : task.status !== 'Done';
     });
 
-    const getStatusStyles = (status) => {
-        switch (status) {
+    const getStatusStyles = (item) => {
+        // Handle potential undefined item safely
+        if (!item) return { bg: '#FFF', text: '#374151', bar: '#9CA3AF', width: '0%' };
+
+        const width = getProgressWidth(item);
+
+        switch (item.status) {
             case 'Not Yet Started':
-                return { bg: '#FFDCDC', text: '#C0392B', bar: '#E74C3C', width: '1%' };
+                return { bg: '#FFDCDC', text: '#C0392B', bar: '#E74C3C', width };
             case 'In Progress':
-                return { bg: '#F5EFEB', text: '#A67C52', bar: '#D35400', width: '50%' };
+                return { bg: '#F5EFEB', text: '#A67C52', bar: '#D35400', width };
             case 'Done':
-                return { bg: '#D5FFD6', text: '#1E8449', bar: '#27AE60', width: '100%' };
+                return { bg: '#D5FFD6', text: '#1E8449', bar: '#27AE60', width };
             case 'Not Yet Assigned':
-                return { bg: '#F1F5F9', text: '#475569', bar: '#94A3B8', width: '0%' };
+                return { bg: '#F1F5F9', text: '#475569', bar: '#94A3B8', width };
             default:
                 return { bg: '#FFF', text: '#374151', bar: '#9CA3AF', width: '0%' };
         }
     };
 
     const TaskCard = ({ item }) => {
-        // FIXED: Using statusStyle consistently
-        const statusStyle = getStatusStyles(item.status);
+        // PASS the whole item, not just item.status
+        const statusStyle = getStatusStyles(item);
         const priorityStyle = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG['Medium'];
 
         return (
@@ -91,7 +96,6 @@ export default function ReadOnlyTasksPage() {
                 activeOpacity={0.9}
             >
                 <View style={styles.cardHeader}>
-                    {/* FIXED: Priority Badge now uses your PRIORITY_CONFIG */}
                     <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.bg }]}>
                         <Ionicons name={priorityStyle.icon} size={14} color={priorityStyle.text} />
                         <Text style={[styles.priorityText, { color: priorityStyle.text }]}>{item.priority}</Text>
@@ -113,7 +117,10 @@ export default function ReadOnlyTasksPage() {
                         <Text style={styles.progressPercent}>{statusStyle.width}</Text>
                     </View>
                     <View style={styles.progressBarContainer}>
-                        <View style={[styles.progressBarFill, { width: statusStyle.width, backgroundColor: statusStyle.bar }]} />
+                        <View style={[
+                            styles.progressBarFill,
+                            { width: statusStyle.width, backgroundColor: statusStyle.bar }
+                        ]} />
                     </View>
                 </View>
 
@@ -127,21 +134,22 @@ export default function ReadOnlyTasksPage() {
         );
     };
 
-    const getProgressWidth = (status) => {
-        switch (status) {
-            case 'Not Yet Assigned':
-            case 'Not Yet Started':
-                return '2%';
+    const getProgressWidth = (item) => {
+        // If the task is Done, always 100%
+        if (item.status === 'Done') return '100%';
 
-            case 'In Progress':
-                return '50%'; // you can adjust later
-
-            case 'Done':
-                return '100%';
-
-            default:
-                return '0%';
+        // If Not Yet Started or Assigned, show the 1% we set during creation
+        if (item.status === 'Not Yet Started' || item.status === 'Not Yet Assigned') {
+            return '1%';
         }
+
+        // For In Progress, use the actual numeric progress from Firebase (e.g., 0.5 -> 50%)
+        if (item.status === 'In Progress') {
+            const percentage = Math.round((item.progress || 0.1) * 100);
+            return `${percentage}%`;
+        }
+
+        return '0%';
     };
 
     const getProgressColor = (status) => {
@@ -203,13 +211,7 @@ export default function ReadOnlyTasksPage() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    tabBar: {
-        flexDirection: 'row',
-        backgroundColor: '#FFF',
-        paddingTop: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0'
-    },
+    tabBar: { flexDirection: 'row', backgroundColor: '#FFF', paddingTop: 10, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
     tabItem: { flex: 1, paddingVertical: 15, alignItems: 'center' },
     activeTabItem: { borderBottomWidth: 3, borderBottomColor: '#2F80ED' },
     tabText: { fontSize: 15, color: '#94A3B8', fontWeight: '600' },
@@ -222,28 +224,19 @@ const styles = StyleSheet.create({
     priorityText: { fontSize: 12, fontWeight: '600', color: '#475569' },
     dateBadge: { flexDirection: 'row', alignItems: 'center' },
     dateText: { marginLeft: 4, color: '#64748B', fontSize: 12, fontWeight: '500' },
-
     cardTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B', marginBottom: 6 },
     cardDescription: { fontSize: 14, color: '#64748B', lineHeight: 20, marginBottom: 16 },
-
     progressSection: { marginBottom: 16 },
     progressInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
     progressLabel: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
     progressPercent: { fontSize: 12, color: '#475569', fontWeight: '700' },
     progressBarContainer: { height: 6, backgroundColor: '#E2E8F0', borderRadius: 3, overflow: 'hidden' },
     progressBarFill: { height: '100%', borderRadius: 3 },
-
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
     statusBadge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
     statusText: { fontSize: 12, fontWeight: '700' },
-
-    fab: {
-        position: 'absolute',
-        bottom: 30, right: 25,
-        backgroundColor: '#2F80ED',
-        width: 56, height: 56,
-        borderRadius: 28,
-        justifyContent: 'center', alignItems: 'center',
+    fab: { position: 'absolute', bottom: 30, right: 25, backgroundColor: '#2F80ED',
+        width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center',
         elevation: 5, shadowColor: '#2F80ED', shadowOpacity: 0.4, shadowRadius: 10
     },
     emptyContainer: { alignItems: 'center', marginTop: 100 },
