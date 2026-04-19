@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    ActivityIndicator,
-    Dimensions
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
-import { db, auth } from "../../../firebaseConfig";
+import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { auth, db } from "../../../firebaseConfig";
 
 export default function ReadOnlyTasksPage() {
     const router = useRouter();
@@ -109,10 +108,10 @@ export default function ReadOnlyTasksPage() {
                 </Text>
 
                 <View style={styles.progressSection}>
-                    <div style={styles.progressInfo}>
+                    <View style={styles.progressInfo}>
                         <Text style={styles.progressLabel}>Status Progress: </Text>
                         <Text style={styles.progressPercent}>{statusStyle.width}</Text>
-                    </div>
+                    </View>
                     <View style={styles.progressBarContainer}>
                         <View style={[styles.progressBarFill, { width: statusStyle.width, backgroundColor: statusStyle.bar }]} />
                     </View>
