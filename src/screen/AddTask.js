@@ -215,7 +215,7 @@ export default function NewTaskScreen() {
         if (!isFormValid) {
             Alert.alert(
                 "Missing Information",
-                "Please fill in all required fields."
+                "Please fill in all required fields:\n- Task Name\n- Description\n- Customer Name\n- Contact No.\n- Location\n- Category"
             );
             return;
         }
