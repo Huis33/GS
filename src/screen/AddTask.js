@@ -88,7 +88,7 @@ export default function NewTaskScreen() {
                         setLocation('');
                         setSelectedPDF(null);
                         setSelectedCategory(null);
-                        setAssignedEngineer(null);
+                        setAssignedTo([]);
                         const d = new Date();
                         d.setHours(23, 59, 59, 999);
                         setDueDate(d);

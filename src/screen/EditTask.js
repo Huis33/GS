@@ -50,7 +50,7 @@ export default function EditTaskScreen() {
     const [assignedTo, setAssignedTo] = useState([]);
     const [isEngineerModalVisible, setEngineerModalVisible] = useState(false);
     const [dueDate, setDueDate] = useState(new Date());
-
+    const [progress, setProgress] = useState(0);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [pickerMode, setPickerMode] = useState('date');
 
@@ -62,6 +62,7 @@ export default function EditTaskScreen() {
                 const catSnap = await getDocs(collection(db, 'priority'));
                 const catList = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setCategories(catList);
+                setProgress(data.progress ?? 0);
 
                 const userSnap = await getDocs(collection(db, 'user'));
                 const engineerData = userSnap.docs
@@ -211,6 +212,7 @@ export default function EditTaskScreen() {
                 assignedIds: assignedTo.map(e => e.id),
                 hasAttachment: !!selectedPDF || !!existingPDFUrl,
                 attachedFile: selectedPDF ? selectedPDF.uri : existingPDFUrl,
+                progress: progress,
                 lastEditedAt: Timestamp.now(),
             };
 
