@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { auth, db } from '../../firebaseConfig';
+import * as Print from 'expo-print';
 
 const PRIORITY_CONFIG = {
     'Critical': { bg: '#FDECEC', text: '#D32F2F', icon: 'alert-circle' },
@@ -31,6 +32,91 @@ export default function TaskDetailsScreen() {
     const [task, setTask] = useState(null);
     const [loading, setLoading] = useState(true);
     const isOwner = auth.currentUser?.uid === task?.createdBy;
+    const canExport = true; // Set your logic here: userRole === 'Coordinator' || userRole === 'Manager'
+
+    const handleExportPDF = async () => {
+        try {
+            setLoading(true);
+
+            // 1. Create HTML Template (Matching your UI colors)
+            const htmlContent = `
+                <html>
+                    <head>
+                        <style>
+                            body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #333; }
+                            .header { border-bottom: 2px solid #2F80ED; padding-bottom: 10px; margin-bottom: 20px; }
+                            .title { fontSize: 24px; font-weight: bold; margin: 0; }
+                            .id { color: #888; font-size: 12px; }
+                            .section { margin-bottom: 20px; padding: 15px; border-radius: 10px; background-color: #F0F7FF; }
+                            .label { font-weight: bold; color: #003366; width: 150px; display: inline-block; }
+                            .row { margin-bottom: 8px; border-bottom: 1px solid #E1E9F5; padding-bottom: 4px; }
+                            .status { font-weight: bold; color: ${getStatusStyles(task.status).text}; }
+                            .desc { line-height: 1.5; white-space: pre-wrap; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="header">
+                            <h1 class="title">${task.name}</h1>
+                            <p class="id">Task ID: ${id.toUpperCase()}</p>
+                        </div>
+
+                        <div class="section">
+                            <h3>Task Information</h3>
+                            <div class="row"><span class="label">Status:</span> <span class="status">${task.status}</span></div>
+                            <div class="row"><span class="label">Priority:</span> <span>${task.priority}</span></div>
+                            <div class="row"><span class="label">Customer:</span> <span>${task.customer}</span></div>
+                            <div class="row"><span class="label">Location:</span> <span>${task.location}</span></div>
+                            <div class="row"><span class="label">Category:</span> <span>${task.categoryName}</span></div>
+                            <div class="row"><span class="label">Created By:</span> <span>${task.creatorName}</span></div>
+                            <div class="row"><span class="label">Due Date:</span> <span>${formatDateTime(task.dueDate)}</span></div>
+                        </div>
+
+                        <div class="section" style="background-color: #F8FAFC;">
+                            <h3>Description</h3>
+                            <p class="desc">${task.taskDescription}</p>
+                        </div>
+
+                        <div class="section">
+                            <h3>Assigned Engineers</h3>
+                            <p>${task.assignedTo?.join(', ') || 'None'}</p>
+                        </div>
+
+                        <p style="text-align: center; font-size: 10px; color: #999; margin-top: 50px;">
+                            Generated on ${new Date().toLocaleString()}
+                        </p>
+                    </body>
+                </html>
+            `;
+
+            // 2. Generate PDF File
+            const { uri } = await Print.printToFileAsync({ html: htmlContent });
+
+            // 3. Save/Share file using your existing logic
+            const fileName = `Report_${task.name.replace(/\s+/g, '_')}.pdf`;
+
+            if (Platform.OS === 'android') {
+                const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+                if (permissions.granted) {
+                    const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+                    const newUri = await FileSystem.StorageAccessFramework.createFileAsync(
+                        permissions.directoryUri,
+                        fileName,
+                        'application/pdf'
+                    );
+                    await FileSystem.writeAsStringAsync(newUri, base64, { encoding: FileSystem.EncodingType.Base64 });
+                    Alert.alert("Success", "Report saved to Downloads.");
+                }
+            } else {
+                await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+            }
+
+        } catch (error) {
+            console.error(error);
+            Alert.alert("Error", "Failed to generate PDF report.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -270,6 +356,12 @@ export default function TaskDetailsScreen() {
                         </TouchableOpacity>
                     ) : <Text style={styles.noAssignment}>No files attached.</Text>}
                 </View>
+                {canExport && (
+                    <TouchableOpacity style={styles.savePdfButton} onPress={handleExportPDF}>
+                        <Ionicons name="document-text-outline" size={20} color="#FFF" />
+                        <Text style={styles.savePdfButtonText}>Save as PDF Report</Text>
+                    </TouchableOpacity>
+                )}
             </ScrollView>
         </SafeAreaView>
     );
@@ -318,5 +410,25 @@ const styles = StyleSheet.create({
     attachmentSection: { backgroundColor: '#F0F7FF', borderRadius: 24, padding: 20, marginBottom: 40, borderWidth: 1, borderColor: '#E1E9F5' },
     attachmentCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginTop: 10, borderWidth: 1, borderColor: '#D6E4F0' },
     attachmentInfo: { flexDirection: 'row', alignItems: 'center' },
-    fileName: { marginLeft: 10, fontSize: 16, color: '#333', fontWeight: '500' },
+    fileName: { marginLeft: 10, fontSize: 16, color: '#333', fontWeight: '500' }, savePdfButton: {
+        backgroundColor: '#1E8449', // Professional green
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 16,
+        borderRadius: 12,
+        marginTop: 10,
+        marginBottom: 30,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+    },
+    savePdfButtonText: {
+        color: '#FFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginLeft: 10,
+    },
 });
