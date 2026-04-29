@@ -1,11 +1,9 @@
-import { Redirect, Stack } from 'expo-router';
+import { ActivityIndicator, View } from 'react-native';
 
 export default function Page() {
     return (
-        <>
-            {/* Ensures this 'bridge' page is invisible while it redirects */}
-            <Stack.Screen options={{ headerShown: false }} />
-            <Redirect href={"/(pengurus)/(tabs)" as any} />
-        </>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="small" color="#000" />
+        </View>
     );
 }
