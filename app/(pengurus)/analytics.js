@@ -14,11 +14,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { db } from "../../firebaseConfig";
-import { collection, onSnapshot } from "firebase/firestore";
+// ✅ Fix 1: Imported 'doc' and removed 'collection'
+import { doc, onSnapshot } from "firebase/firestore";
 import { PieChart } from "react-native-chart-kit";
+import { listenToAnalytics } from '../../src/service/AnalyticsService';
 
 const screenWidth = Dimensions.get("window").width;
-// Your exact colors from the screenshot
 const COLORS = ['#FF8A80', '#82B1FF', '#69F0AE', '#FFD740', '#B388FF'];
 
 export default function AnalyticsScreen() {
@@ -29,38 +30,21 @@ export default function AnalyticsScreen() {
     const [stats, setStats] = useState({ total: 0, completed: 0 });
 
     useEffect(() => {
-        const unsubscribe = onSnapshot(collection(db, 'task'), (snapshot) => {
-            const tasks = [];
-            snapshot.forEach(doc => tasks.push(doc.data()));
-            calculateAnalytics(tasks);
+        // Call our new service and pass a callback function to handle the data
+        const unsubscribe = listenToAnalytics((data) => {
+            setStats({ total: data.total, completed: data.completed });
+            setEngineerAnalytics(processToChartData(data.engineerCounts));
+            setCoordinatorAnalytics(processToChartData(data.coordinatorCounts));
             setLoading(false);
         });
+
+        // Cleanup the listener when the user leaves the screen
         return () => unsubscribe();
     }, []);
+    // ✅ Fix 2: Removed calculateAnalytics (Dead code)
 
-    const calculateAnalytics = (tasks) => {
-        const engineerCounts = {};
-        const coordinatorCounts = {};
-        let completedCount = 0;
-
-        tasks.forEach(task => {
-            if (task.assignedTo && Array.isArray(task.assignedTo)) {
-                task.assignedTo.forEach(name => {
-                    engineerCounts[name] = (engineerCounts[name] || 0) + 1;
-                });
-            }
-            if (task.creatorName) {
-                coordinatorCounts[task.creatorName] = (coordinatorCounts[task.creatorName] || 0) + 1;
-            }
-            if (task.status === 'Done') completedCount++;
-        });
-
-        setStats({ total: tasks.length, completed: completedCount });
-        setEngineerAnalytics(processToChartData(engineerCounts));
-        setCoordinatorAnalytics(processToChartData(coordinatorCounts));
-    };
-
-    const processToChartData = (countsMap) => {
+    // ✅ Fix 3: Added default empty object fallback = {}
+    const processToChartData = (countsMap = {}) => {
         const total = Object.values(countsMap).reduce((a, b) => a + b, 0);
         return Object.keys(countsMap)
             .map((name, index) => ({
@@ -75,7 +59,6 @@ export default function AnalyticsScreen() {
     };
 
     const handleSlicePress = (data) => {
-        // We navigate and pass the name as a search parameter
         router.push({
             pathname: '/analytic-detail',
             params: { name: data.name }
@@ -99,6 +82,7 @@ export default function AnalyticsScreen() {
 
     return (
         <SafeAreaView style={styles.safeArea}>
+            {/* UI Code remains exactly the same as yours */}
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -134,7 +118,7 @@ export default function AnalyticsScreen() {
                             chartConfig={{ color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})` }}
                             accessor={"population"}
                             backgroundColor={"transparent"}
-                            paddingLeft={"75"} // Adjusted for visual centering
+                            paddingLeft={"75"}
                             center={[0, 0]}
                             hasLegend={false}
                         />
@@ -145,7 +129,7 @@ export default function AnalyticsScreen() {
                             <TouchableOpacity
                                 key={index}
                                 style={styles.legendPill}
-                                onPress={() => handleSlicePress(item)} // This enables the interaction
+                                onPress={() => handleSlicePress(item)}
                             >
                                 <View style={[styles.dot, { backgroundColor: item.color }]} />
                                 <Text style={styles.legendText}>{item.name} - {item.percentage}%</Text>
@@ -175,7 +159,7 @@ export default function AnalyticsScreen() {
                             <TouchableOpacity
                                 key={index}
                                 style={styles.legendPill}
-                                onPress={() => handleCoordinatorPress(item)} // Navigate on click
+                                onPress={() => handleCoordinatorPress(item)}
                             >
                                 <View style={[styles.dot, { backgroundColor: item.color }]} />
                                 <Text style={styles.legendText}>{item.name} - {item.percentage}%</Text>
@@ -188,6 +172,8 @@ export default function AnalyticsScreen() {
         </SafeAreaView>
     );
 }
+
+// ... styles remain the same
 
 const styles = StyleSheet.create({
     loadingContainer: {
