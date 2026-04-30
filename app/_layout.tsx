@@ -1,11 +1,7 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Href, Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import 'react-native-reanimated';
-
-// Import your context and hooks
-import { useColorScheme } from '../hooks/use-color-scheme';
 import { UserProvider, useUser } from '../src/context/UserContext';
 
 export const unstable_settings = {
@@ -13,7 +9,6 @@ export const unstable_settings = {
 };
 
 function RootLayoutNav() {
-  const colorScheme = useColorScheme();
   const { userData, isLoading } = useUser();
   const segments = useSegments();
   const router = useRouter();
@@ -24,8 +19,8 @@ function RootLayoutNav() {
   useEffect(() => {
     // 1. Wait until Expo Router and Auth are ready
     if (!navigationState?.key || isLoading) {
-        console.log("Layout waiting: Navigation ready:", !!navigationState?.key, "Auth Loading:", isLoading);
-        return;
+      console.log("Layout waiting: Navigation ready:", !!navigationState?.key, "Auth Loading:", isLoading);
+      return;
     }
 
     const isGuestArea = rootSegment === '' || rootSegment === 'index' || rootSegment === 'forgot-password';
@@ -59,11 +54,11 @@ function RootLayoutNav() {
       console.log("User is in guest area, redirecting to dashboard...");
       if (isJurutera) {
         router.replace('/(jurutera)' as Href);
-    } else if (isPengurus) {
+      } else if (isPengurus) {
         router.replace('/(pengurus)' as Href);
-    } else if (isPenyelaras) {
+      } else if (isPenyelaras) {
         router.replace('/(penyelaras)' as Href);
-    }
+      }
     } else {
       console.log("User is already in their respective dashboard area.");
     }
@@ -71,17 +66,17 @@ function RootLayoutNav() {
   }, [userData, isLoading, rootSegment, navigationState?.key]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(jurutera)" />
-        <Stack.Screen name="jurutera-main" />
-        <Stack.Screen name="(pengurus)" />
-        <Stack.Screen name="pengurus-main" />
-        <Stack.Screen name="(penyelaras)" />
-        <Stack.Screen name="penyelaras-main" />
-      </Stack>
-    </ThemeProvider>
+
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(jurutera)" />
+      <Stack.Screen name="jurutera-main" />
+      <Stack.Screen name="(pengurus)" />
+      <Stack.Screen name="pengurus-main" />
+      <Stack.Screen name="(penyelaras)" />
+      <Stack.Screen name="penyelaras-main" />
+    </Stack>
+
   );
 }
 
