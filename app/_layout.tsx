@@ -1,12 +1,12 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
+import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
 import React, { useEffect } from 'react';
+import 'react-native-reanimated';
 
 // Import your context and hooks
-import { UserProvider, useUser } from '../src/context/UserContext';
 import { useColorScheme } from '../hooks/use-color-scheme';
+import { UserProvider, useUser } from '../src/context/UserContext';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -22,62 +22,46 @@ function RootLayoutNav() {
   const rootSegment = segments[0] ? String(segments[0]) : '';
 
   useEffect(() => {
-    // 1. Wait until Expo Router is completely ready
-    if (!navigationState?.key || isLoading) return;
+    // 1. Wait until Expo Router and Auth are ready
+    if (!navigationState?.key || isLoading) {
+        console.log("Layout waiting: Navigation ready:", !!navigationState?.key, "Auth Loading:", isLoading);
+        return;
+    }
 
     const isGuestArea = rootSegment === '' || rootSegment === 'index' || rootSegment === 'forgot-password';
 
+    // SCENARIO A: NOT LOGGED IN
     if (!userData) {
-      // SCENARIO A: NOT LOGGED IN
-      if (!isGuestArea) {
-        router.replace('/');
-      }
+      console.log("No user data found. Guest Area:", isGuestArea);
+      if (!isGuestArea) router.replace('/');
       return;
     }
 
-    // SCENARIO B: LOGGED IN
-    // .trim() removes accidental spaces from Firebase like "Jurutera " -> "jurutera"
+    // SCENARIO B: LOGGED IN - Role Detection
     const rawRole = userData?.role || '';
-    const role = rawRole.trim().toLowerCase();
+    const role = rawRole.trim().toLowerCase(); // Normalize string
+    console.log("Logged in user role detected:", role);
 
-    // Define valid roles explicitly
-    const isJurutera = role === 'jurutera';
-    const isPengurus = role === 'pengurus';
-    const isPenyelaras = role === 'penyelaras';
+    // Map your Database roles (English) to your App logic (Malay)
+    const isJurutera = role === 'engineer' || role === 'jurutera';
+    const isPengurus = role === 'operationmanager' || role === 'pengurus';
+    const isPenyelaras = role === 'servicecoordinator' || role === 'penyelaras';
 
-    // FAILSAFE: If the user has a weird, missing, or unauthorized role in Firestore,
-    // kick them back to login immediately so they don't get stuck in an infinite loop.
+    // FAILSAFE: If the role is not recognized
     if (!isJurutera && !isPengurus && !isPenyelaras) {
-      if (!isGuestArea) {
-        router.replace('/');
-      }
+      console.error("CRITICAL: Role not recognized. Check Firestore 'role' field. Value was:", role);
+      if (!isGuestArea) router.replace('/');
       return;
     }
 
-    // Rule 1: If they are hanging out on the login page, send them directly to their dashboard
+    // REDIRECTION LOGIC
     if (isGuestArea) {
+      console.log("User is in guest area, redirecting to dashboard...");
       if (isJurutera) router.replace('/jurutera-main');
       else if (isPengurus) router.replace('/pengurus-main');
       else if (isPenyelaras) router.replace('/penyelaras-main');
-      return;
-    }
-
-    // Rule 2: Security check. Are they in an area they shouldn't be?
-    const inJuruteraArea = rootSegment === '(jurutera)' || rootSegment === 'jurutera-main';
-    const inPengurusArea = rootSegment === '(pengurus)' || rootSegment === 'pengurus-main';
-    const inPenyelarasArea = rootSegment === '(penyelaras)' || rootSegment === 'penyelaras-main';
-
-    const isInWrongArea =
-      (inJuruteraArea && !isJurutera) ||
-      (inPengurusArea && !isPengurus) ||
-      (inPenyelarasArea && !isPenyelaras);
-
-    // If they are somewhere they shouldn't be, route them EXACTLY to their home. 
-    // This stops the infinite bouncing completely.
-    if (isInWrongArea) {
-      if (isJurutera) router.replace('/jurutera-main');
-      else if (isPengurus) router.replace('/pengurus-main');
-      else if (isPenyelaras) router.replace('/penyelaras-main');
+    } else {
+      console.log("User is already in their respective dashboard area.");
     }
 
   }, [userData, isLoading, rootSegment, navigationState?.key]);

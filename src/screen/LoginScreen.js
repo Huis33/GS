@@ -31,51 +31,35 @@ export default function LoginScreen() {
         }
 
         setLoading(true);
+        console.log("--- Login Attempt Started ---");
 
         try {
-            // result contains { user, role, status } from your AuthService
+            // 1. Perform Auth and Fetch Firestore Data
             const result = await loginUser(email, password);
-            setUserData(result);
-            const userRole = result.role;
+            console.log("Login successful! Data fetched for role:", result.role);
 
-            // Role-Based Navigation Logic
-            if (userRole === 'Engineer') {
-                router.replace('/jurutera-main');
-            } else if (userRole === 'OperationManager') {
-                router.replace('/pengurus-main');
-            } else if (userRole === 'ServiceCoordinator') {
-                router.replace('/penyelaras-main');
-            } else {
-                // Fallback for unexpected roles
-                Alert.alert("Access Denied", "Your role is not authorized for this app.");
-                setLoading(false);
-            }
+            // 2. Update Global Context
+            // This will trigger the useEffect in app/_layout.tsx to handle the redirect
+            setUserData(result);
+
+            // 3. Turn off local loading immediately
+            setLoading(false); 
+            console.log("Local loading state set to false.");
 
         } catch (error) {
-            console.error("Login Error:", error.code);
+            console.error("Login Screen Catch Error:", error);
+            
             let errorMessage = "Something went wrong. Please try again.";
-
-            // Check if error.code exists (Firebase errors) or use error.message
-            if (error.code) {
-                switch (error.code) {
-                    case 'auth/invalid-credential':
-                    case 'auth/user-not-found':
-                        errorMessage = "Invalid email or password.";
-                        break;
-                    case 'auth/too-many-requests':
-                        errorMessage = "Too many attempts. Try again later.";
-                        break;
-                    default:
-                        errorMessage = error.message;
-                }
-            } else if (error.message) {
-                errorMessage = error.message;
+            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+                errorMessage = "Invalid email or password.";
+            } else if (error.code === 'auth/too-many-requests') {
+                errorMessage = "Too many attempts. Try again later.";
             }
 
             Alert.alert("Login Failed", errorMessage);
-            setLoading(false);
+            setLoading(false); // Stop spinner on error
         }
-}
+    };
 
     return (
         <SafeAreaView style={styles.container}>
