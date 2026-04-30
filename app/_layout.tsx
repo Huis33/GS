@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
+import { Href, Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -57,9 +57,13 @@ function RootLayoutNav() {
     // REDIRECTION LOGIC
     if (isGuestArea) {
       console.log("User is in guest area, redirecting to dashboard...");
-      if (isJurutera) router.replace('/jurutera-main');
-      else if (isPengurus) router.replace('/pengurus-main');
-      else if (isPenyelaras) router.replace('/penyelaras-main');
+      if (isJurutera) {
+        router.replace('/(jurutera)' as Href);
+    } else if (isPengurus) {
+        router.replace('/(pengurus)' as Href);
+    } else if (isPenyelaras) {
+        router.replace('/(penyelaras)' as Href);
+    }
     } else {
       console.log("User is already in their respective dashboard area.");
     }
