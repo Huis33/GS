@@ -88,7 +88,7 @@ export default function EditProfileScreen() {
                     lastUpdated: { toDate: () => new Date() } 
                 });
             }
-            isDirtyRef.current = false;
+            statusChangedRef.current = false;
             Alert.alert("Success", "Current status has been updated.");
            
         } catch (error) {

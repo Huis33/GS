@@ -8,19 +8,27 @@ import {
     SafeAreaView,
     ActivityIndicator,
     Dimensions,
-    StatusBar,
-    Platform
+    StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { db } from "../../firebaseConfig";
-// ✅ Fix 1: Imported 'doc' and removed 'collection'
-import { doc, onSnapshot } from "firebase/firestore";
 import { PieChart } from "react-native-chart-kit";
+
+// 1. IMPORT CENTRALIZED THEME & SERVICES
 import { listenToAnalytics } from '../../src/service/AnalyticsService';
+import { COLORS } from '../../constants/theme';
 
 const screenWidth = Dimensions.get("window").width;
-const COLORS = ['#FF8A80', '#82B1FF', '#69F0AE', '#FFD740', '#B388FF'];
+
+// Define chart colors using centralized theme
+const CHART_PALETTE = [
+    COLORS.primary,
+    COLORS.success,
+    COLORS.warning,
+    COLORS.danger,
+    COLORS.secondary,
+    COLORS.info
+    ];
 
 export default function AnalyticsScreen() {
     const router = useRouter();
@@ -30,7 +38,7 @@ export default function AnalyticsScreen() {
     const [stats, setStats] = useState({ total: 0, completed: 0 });
 
     useEffect(() => {
-        // Call our new service and pass a callback function to handle the data
+        // Listen to real-time updates from service
         const unsubscribe = listenToAnalytics((data) => {
             setStats({ total: data.total, completed: data.completed });
             setEngineerAnalytics(processToChartData(data.engineerCounts));
@@ -38,12 +46,9 @@ export default function AnalyticsScreen() {
             setLoading(false);
         });
 
-        // Cleanup the listener when the user leaves the screen
         return () => unsubscribe();
     }, []);
-    // ✅ Fix 2: Removed calculateAnalytics (Dead code)
 
-    // ✅ Fix 3: Added default empty object fallback = {}
     const processToChartData = (countsMap = {}) => {
         const total = Object.values(countsMap).reduce((a, b) => a + b, 0);
         return Object.keys(countsMap)
@@ -51,7 +56,8 @@ export default function AnalyticsScreen() {
                 name: name,
                 population: countsMap[name],
                 percentage: total > 0 ? Math.round((countsMap[name] / total) * 100) : 0,
-                color: COLORS[index % COLORS.length],
+                // Assign color from theme palette
+                color: CHART_PALETTE[index % CHART_PALETTE.length],
                 legendFontColor: "#7F7F7F",
                 legendFontSize: 12
             }))
@@ -75,18 +81,17 @@ export default function AnalyticsScreen() {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6389DA" />
+                <ActivityIndicator size="large" color={COLORS.primary} />
             </View>
         );
     }
 
     return (
         <SafeAreaView style={styles.safeArea}>
-            {/* UI Code remains exactly the same as yours */}
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="black" />
+                    <Ionicons name="arrow-back" size={24} color={COLORS.textDark} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Analytics</Text>
                 <View style={{ width: 24 }} />
@@ -109,7 +114,6 @@ export default function AnalyticsScreen() {
                 {/* Section: Most Assigned Engineer */}
                 <View style={styles.sectionCard}>
                     <Text style={styles.sectionTitle}>Most Assigned Engineer</Text>
-
                     <View style={styles.chartWrapper}>
                         <PieChart
                             data={engineerAnalytics}
@@ -123,7 +127,6 @@ export default function AnalyticsScreen() {
                             hasLegend={false}
                         />
                     </View>
-
                     <View style={styles.legendContainer}>
                         {engineerAnalytics.map((item, index) => (
                             <TouchableOpacity
@@ -173,135 +176,58 @@ export default function AnalyticsScreen() {
     );
 }
 
-// ... styles remain the same
-
 const styles = StyleSheet.create({
-    loadingContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-
+    safeArea: { flex: 1, backgroundColor: COLORS.background },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 20,
         paddingVertical: 16,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: COLORS.background,
     },
-
-    headerTitle: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#111'
-    },
-
-    backButton: {
-        padding: 6,
-        borderRadius: 10,
-        backgroundColor: '#EDEFF3'
-    },
-
-    scrollContent: {
-        padding: 16,
-    },
-
-    /* SUMMARY CARDS */
-    summaryRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 18
-    },
-
+    headerTitle: { fontSize: 22, fontWeight: '700', color: COLORS.textDark },
+    backButton: { padding: 6, borderRadius: 10, backgroundColor: '#EDEFF3' },
+    scrollContent: { padding: 16 },
+    summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
     miniCard: {
         width: '48%',
         paddingVertical: 22,
         borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
-
-        // shadow
         shadowColor: '#000',
         shadowOpacity: 0.08,
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 4 },
         elevation: 3,
     },
-
-    miniLabel: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: '#555',
-        marginBottom: 6
-    },
-
-    miniValue: {
-        fontSize: 30,
-        fontWeight: '800',
-        color: '#111'
-    },
-
-    /* SECTION CARD */
+    miniLabel: { fontSize: 13, fontWeight: '500', color: COLORS.textGray, marginBottom: 6 },
+    miniValue: { fontSize: 30, fontWeight: '800', color: COLORS.textDark },
     sectionCard: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: COLORS.white,
         borderRadius: 24,
         padding: 18,
         marginBottom: 20,
-
         shadowColor: '#000',
         shadowOpacity: 0.06,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 5 },
         elevation: 4,
     },
-
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#111',
-        marginBottom: 12
-    },
-
-    chartWrapper: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        marginTop: 5
-    },
-
-    /* LEGEND */
-    legendContainer: {
-        marginTop: 18,
-        width: '100%'
-    },
-
+    sectionTitle: { fontSize: 18, fontWeight: '700', color: COLORS.textDark, marginBottom: 12 },
+    chartWrapper: { alignItems: 'center', justifyContent: 'center', width: '100%', marginTop: 5 },
+    legendContainer: { marginTop: 18, width: '100%' },
     legendPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F1F5F9', // softer than grey
+        backgroundColor: '#F1F5F9',
         paddingVertical: 12,
         paddingHorizontal: 14,
         borderRadius: 16,
         marginBottom: 10,
-
-        shadowColor: '#000',
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 2,
     },
-
-    dot: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        marginRight: 10
-    },
-
-    legendText: {
-        fontSize: 14,
-        color: '#333',
-        fontWeight: '500'
-    }
+    dot: { width: 12, height: 12, borderRadius: 6, marginRight: 10 },
+    legendText: { fontSize: 14, color: '#333', fontWeight: '500' }
 });

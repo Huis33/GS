@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -85,13 +85,41 @@ export default function ReadOnlyTasksPage() {
     };
 
     const TaskCard = ({ item }) => {
-        // PASS the whole item, not just item.status
-        const statusStyle = getStatusStyles(item);
         const priorityStyle = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG['Medium'];
+
+        const isOverdue = useMemo(() => {
+            if (item.status === 'Done' || !item.dueDate) return false;
+
+            const deadline = item.dueDate?.toDate
+                ? item.dueDate.toDate()
+                : new Date(item.dueDate);
+
+            deadline.setHours(23, 59, 59, 999);
+
+            return new Date() > deadline;
+        }, [item]);
+
+        const baseStatusStyle = getStatusStyles(item);
+
+        const statusStyle = isOverdue
+            ? {
+                bg: '#FFE5E5',
+                text: '#C0392B',
+                bar: '#E74C3C',
+                width: baseStatusStyle.width
+            }
+            : baseStatusStyle;
 
         return (
             <TouchableOpacity
-                style={styles.card}
+                style={[
+                    styles.card,
+                    {
+                        backgroundColor: statusStyle.bg,
+                        borderColor: statusStyle.bar,
+                        borderWidth: 1
+                    }
+                ]}
                 onPress={() => router.push({ pathname: '/task-detail', params: { id: item.id } })}
                 activeOpacity={0.9}
             >
@@ -102,12 +130,29 @@ export default function ReadOnlyTasksPage() {
                     </View>
                     <View style={styles.dateBadge}>
                         <Ionicons name="time-outline" size={14} color="#6B7280" />
-                        <Text style={styles.dateText}>{item.displayDate}</Text>
+                        <Text style={styles.dateText}>
+                            {item.dueDate?.toDate
+                                ? item.dueDate.toDate().toLocaleDateString()
+                                : 'No Date'}
+                        </Text>
                     </View>
                 </View>
 
-                <Text style={styles.cardTitle}>{item.name}</Text>
-                <Text style={styles.cardDescription} numberOfLines={2}>
+                <Text
+                    style={[
+                        styles.cardTitle,
+                        isOverdue && { color: '#B00020' }
+                    ]}
+                >
+                    {item.name}
+                </Text>
+                <Text
+                    style={[
+                        styles.cardDescription,
+                        isOverdue && { color: '#7F1D1D' }
+                    ]}
+                    numberOfLines={2}
+                >
                     {item.taskDescription}
                 </Text>
 
@@ -117,10 +162,15 @@ export default function ReadOnlyTasksPage() {
                         <Text style={styles.progressPercent}>{statusStyle.width}</Text>
                     </View>
                     <View style={styles.progressBarContainer}>
-                        <View style={[
-                            styles.progressBarFill,
-                            { width: statusStyle.width, backgroundColor: statusStyle.bar }
-                        ]} />
+                        <View
+                            style={[
+                                styles.progressBarFill,
+                                {
+                                    width: statusStyle.width === '0%' ? '100%' : statusStyle.width,
+                                    backgroundColor: statusStyle.width === '0%' ? '#D1D5DB' : statusStyle.bar
+                                }
+                            ]}
+                        />
                     </View>
                 </View>
 

@@ -61,12 +61,25 @@ export default function EngineerDetails() {
 
             <ScrollView style={styles.content}>
                 {/* Profile Card styled like Code 1 */}
-                <View style={styles.profileCard}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{name?.charAt(0)}</Text>
-                    </View>
-                    <Text style={styles.engineerName}>{name}</Text>
-                    <Text style={styles.statsSub}>Total Tasks Handled: {tasks.length}</Text>
+                <View style={styles.profileCardWrapper}>
+                    <TouchableOpacity
+                        style={styles.profileCard}
+                        onPress={() =>
+                            router.push({
+                                pathname: '/read-only-eng-profile',
+                                params: { name }
+                            })
+                        }
+                    >
+                        <View style={styles.avatar}>
+                            <Text style={styles.avatarText}>{name?.charAt(0)}</Text>
+                        </View>
+
+                        <Text style={styles.engineerName}>{name}</Text>
+                        <Text style={styles.statsSub}>
+                            Total Tasks Handled: {tasks.length}
+                        </Text>
+                    </TouchableOpacity>
                 </View>
 
                 <Text style={styles.sectionTitle}>Task History</Text>
@@ -158,5 +171,8 @@ const styles = StyleSheet.create({
         marginTop: 5
     },
     badgeText: { fontSize: 10, fontWeight: 'bold', color: '#333' },
-    emptyText: { textAlign: 'center', color: '#999', marginTop: 20 }
+    emptyText: { textAlign: 'center', color: '#999', marginTop: 20 },
+    profileCardWrapper: {
+        marginBottom: 25
+    },
 });

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     Alert,
     ScrollView,
@@ -115,17 +115,58 @@ export default function TasksPage() {
         const isInProgress = item.status === 'In Progress';
         const isStatusOpen = openStatusId === item.id;
 
+        const isOverdue = useMemo(() => {
+            if (isDone || !item.dueDate) return false;
+
+            const now = new Date();
+            let deadline;
+
+            if (item.dueDate && typeof item.dueDate.toDate === 'function') {
+                // It's a Firebase Timestamp
+                deadline = item.dueDate.toDate();
+            } else {
+                // It's a String or ISO date
+                deadline = new Date(item.dueDate);
+            }
+
+            const today = new Date();
+
+            today.setHours(0, 0, 0, 0);
+            deadline.setHours(23, 59, 59, 999);
+
+            return now > deadline;
+        }, [item.dueDate, isDone]);
+
         return (
-            <View style={styles.card}>
+            <View style={[
+                styles.card,
+                isOverdue && styles.overdueCard // Apply red background if overdue
+            ]}>
                 <TouchableOpacity
                     onPress={() => router.push({ pathname: '/task-detail', params: { id: item.id } })}
                     activeOpacity={0.7}
                 >
                     <View style={styles.cardHeader}>
-                        <Ionicons name="calendar-outline" size={18} color="#666" />
-                        <Text style={styles.dateText}>{formatFirebaseDate(item.dueDate)}</Text>
+                        <Ionicons
+                            name="calendar-outline"
+                            size={18}
+                            color={isOverdue ? "#C0392B" : "#666"}
+                        />
+                        <Text style={[
+                            styles.dateText,
+                            isOverdue && styles.overdueText // Change text color to dark red
+                        ]}>
+                            {formatFirebaseDate(item.dueDate)} {isOverdue && "(Overdue)"}
+                        </Text>
                     </View>
-                    <Text style={styles.cardTitle}>{item.name}</Text>
+                    <Text
+                        style={[
+                            styles.cardTitle,
+                            isOverdue && styles.overdueTitle
+                        ]}
+                    >
+                        {item.name}
+                    </Text>
                     <Text style={styles.cardDescription} numberOfLines={2}>{item.taskDescription}</Text>
                 </TouchableOpacity>
 
@@ -144,17 +185,21 @@ export default function TasksPage() {
                                 minimumValue={0}
                                 maximumValue={1}
                                 value={item.progress}
-                                minimumTrackTintColor="#27AE60"
+                                minimumTrackTintColor={isOverdue ? "#E74C3C" : "#27AE60"}
                                 maximumTrackTintColor="rgba(0,0,0,0.1)"
-                                thumbTintColor="#27AE60"
+                                thumbTintColor={isOverdue ? "#E74C3C" : "#27AE60"}
                                 onSlidingComplete={(val) => updateTaskInFirebase(item.id, { progress: val })}
                             />
                         ) : (
                             // Static bar for Not Yet Started or Done
                             <View style={styles.staticBarContainer}>
                                 <View style={styles.progressBarBg}>
-                                    <View style={[styles.progressBarFill, { width: `${item.progress * 100}%` }]} />
-                                </View>
+                                        <View style={[
+                                            styles.progressBarFill,
+                                            { width: `${item.progress * 100}%` },
+                                            isOverdue && { backgroundColor: '#E74C3C' }
+                                        ]} />
+                                    </View>
                             </View>
                         )}
                     </View>
@@ -163,7 +208,11 @@ export default function TasksPage() {
                 {/* STATUS DROPDOWN */}
                 <View style={styles.dropdownSection}>
                     <TouchableOpacity
-                        style={[styles.statusPicker, { backgroundColor: getStatusColor(item.status) }]}
+                        style={[
+                            styles.statusPicker,
+                            { backgroundColor: getStatusColor(item.status) },
+                            isOverdue && { borderColor: '#E74C3C' }
+                        ]}
                         onPress={() => !isDone && setOpenStatusId(isStatusOpen ? null : item.id)}
                         disabled={isDone}
                     >
@@ -173,18 +222,16 @@ export default function TasksPage() {
 
                     {isStatusOpen && (
                         <View style={styles.inlineList}>
-                            {statusOptions.map(opt => {
-                                return (
-                            <TouchableOpacity
-                                key={opt}
-                                style={styles.inlineOption}
-                                onPress={() => handleStatusSelect(item.id, item.status, opt)}
-                            >
-                                <Text style={styles.optionText}>{opt}</Text>
-                                {item.status === opt && <Ionicons name="checkmark" size={16} color="#2F80ED" />}
-                            </TouchableOpacity>
-                            );
-                            })}
+                            {statusOptions.map(opt => (
+                                <TouchableOpacity
+                                    key={opt}
+                                    style={styles.inlineOption}
+                                    onPress={() => handleStatusSelect(item.id, item.status, opt)}
+                                >
+                                    <Text style={styles.optionText}>{opt}</Text>
+                                    {item.status === opt && <Ionicons name="checkmark" size={16} color="#2F80ED" />}
+                                </TouchableOpacity>
+                            ))}
                         </View>
                     )}
                 </View>
@@ -265,5 +312,17 @@ const styles = StyleSheet.create({
     inlineOption: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee' },
     optionText: { fontSize: 14, color: '#333' },
     emptyContainer: { alignItems: 'center', marginTop: 100 },
-    emptyText: { marginTop: 10, color: '#94A3B8', fontSize: 16, fontWeight: '500' }
+    emptyText: { marginTop: 10, color: '#94A3B8', fontSize: 16, fontWeight: '500' },
+    overdueCard: {
+        backgroundColor: '#FFE5E5',
+        borderColor: '#E74C3C',
+        borderWidth: 1,
+    },
+    overdueText: {
+        color: '#C0392B', // Dark Red for text
+        fontWeight: 'bold',
+    },
+    overdueTitle: {
+        color: '#C0392B',
+    },
 });

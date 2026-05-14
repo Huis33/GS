@@ -54,8 +54,8 @@ export default function ReadOnlyTasksPage() {
             .filter(task => activeTab === 'Done' ? task.status === 'Done' : task.status !== 'Done')
             .sort((a, b) => {
                 // Safe Date Parsing
-                const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
-                const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                const dateA = a.dueDate?.toDate ? a.dueDate.toDate() : new Date(a.dueDate);
+                const dateB = b.dueDate?.toDate ? b.dueDate.toDate() : new Date(b.dueDate);
                 return dateA - dateB;
             });
     }, [activeTab, taskList]);
@@ -115,12 +115,41 @@ export default function ReadOnlyTasksPage() {
     };
 
     const TaskCard = ({ item }) => {
-        const statusStyle = getStatusStyles(item);
         const priorityStyle = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG['Medium'];
+
+        const isOverdue = useMemo(() => {
+            if (item.status === 'Done' || !item.dueDate) return false;
+
+            const deadline = item.dueDate?.toDate
+                ? item.dueDate.toDate()
+                : new Date(item.dueDate);
+
+            deadline.setHours(23, 59, 59, 999);
+
+            return new Date() > deadline;
+        }, [item]);
+
+        const baseStatusStyle = getStatusStyles(item);
+
+        const statusStyle = isOverdue
+            ? {
+                bg: '#FFE5E5',
+                text: '#C0392B',
+                bar: '#E74C3C',
+                width: baseStatusStyle.width
+            }
+            : baseStatusStyle;
 
         return (
             <TouchableOpacity
-                style={styles.card}
+                style={[
+                    styles.card,
+                    {
+                        backgroundColor: statusStyle.bg,
+                        borderColor: statusStyle.bar,
+                        borderWidth: 1
+                    }
+                ]}
                 onPress={() => router.push({ pathname: '/task-detail', params: { id: item.id } })}
                 activeOpacity={0.9}
             >
@@ -144,8 +173,21 @@ export default function ReadOnlyTasksPage() {
                 </View>
 
                 {/* Content */}
-                <Text style={styles.cardTitle}>{item.name}</Text>
-                <Text style={styles.cardDescription} numberOfLines={2}>
+                <Text
+                    style={[
+                        styles.cardTitle,
+                        isOverdue && { color: '#B00020' }
+                    ]}
+                >
+                    {item.name}
+                </Text>
+                <Text
+                    style={[
+                        styles.cardDescription,
+                        isOverdue && { color: '#7F1D1D' }
+                    ]}
+                    numberOfLines={2}
+                >
                     {item.taskDescription}
                 </Text>
 

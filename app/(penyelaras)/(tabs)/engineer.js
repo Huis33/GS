@@ -12,12 +12,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { db } from '../../../firebaseConfig'; // Adjust your firebase config path
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useRouter } from "expo-router";
 
 export default function EngineerListScreen() {
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('Available');
     const [engineers, setEngineers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     // Fetch Engineers from Firebase
     useEffect(() => {
@@ -50,15 +52,23 @@ export default function EngineerListScreen() {
     });
 
     const renderEngineerItem = ({ item }) => (
-        <TouchableOpacity style={styles.engineerItem}>
+        <TouchableOpacity
+            style={styles.engineerItem}
+            onPress={() =>
+                router.push({
+                    pathname: '/analytic-detail',
+                    params: { name: item.name }
+                })
+            }
+        >
             <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
                     {item.name ? item.name.charAt(0).toUpperCase() : '?'}
                 </Text>
             </View>
+
             <View>
                 <Text style={styles.engineerName}>{item.name}</Text>
-                {/* Optional: Show skillset if it exists */}
                 {item.skillSet && <Text style={styles.skillText}>{item.skillSet}</Text>}
             </View>
         </TouchableOpacity>
