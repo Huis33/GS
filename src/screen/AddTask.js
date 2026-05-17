@@ -219,6 +219,28 @@ export default function NewTaskScreen() {
             );
             return;
         }
+
+        const busyEngineers = assignedTo.filter(
+            eng => eng.availabilityStatus === 'On Duty' || eng.availabilityStatus === 'Not Available'
+        );
+
+        if (busyEngineers.length > 0) {
+            const engineerNames = busyEngineers.map(e => e.name).join(', ');
+
+            // Wrap the logic in a promise to wait for user confirmation
+            const proceed = await new Promise((resolve) => {
+                Alert.alert(
+                    "Busy Engineer Warning",
+                    `The following engineers are currently ${engineerNames}. \n\nThey may not be able to finish this task on time due to their current status. Do you still want to proceed?`,
+                    [
+                        { text: "Change Selection", onPress: () => resolve(false), style: "cancel" },
+                        { text: "Proceed Anyway", onPress: () => resolve(true) }
+                    ]
+                );
+            });
+
+            if (!proceed) return; // Exit function if user wants to change engineers
+        }
     
         setLoading(true);
         try {
@@ -230,16 +252,13 @@ export default function NewTaskScreen() {
                 // A. Convert URI to Blob (Necessary for Expo/React Native)
                 const response = await fetch(selectedPDF.uri);
                 const blob = await response.blob();
-    
                 // B. Create a storage reference
                 const storage = getStorage();
                 const fileExtension = selectedPDF.name.split('.').pop();
                 const fileName = `attachments/${Date.now()}.${fileExtension}`;
                 const storageRef = ref(storage, fileName);
-    
                 // C. Upload the file
                 const snapshot = await uploadBytes(storageRef, blob);
-                
                 // D. Get the public Download URL
                 firebaseUrl = await getDownloadURL(snapshot.ref);
             }
@@ -258,10 +277,8 @@ export default function NewTaskScreen() {
                 assignedTo: assignedTo.map(e => e.name),
                 assignedIds: assignedTo.map(e => e.id),
                 hasAttachment: !!selectedPDF,
-                
                 // UPDATE: Use the firebaseUrl instead of selectedPDF.uri
                 attachedFile: firebaseUrl, 
-                
                 createdDate: Timestamp.now(),
                 createdBy: currentUser?.uid || "Anonymous",
                 creatorName: userData?.name || userData?.username || "System User",
@@ -508,16 +525,25 @@ export default function NewTaskScreen() {
                         <ScrollView style={styles.modalScrollView} showsVerticalScrollIndicator={false}>
                             {engineers.map((eng) => {
                                 const isSelected = assignedTo.some(item => item.id === eng.id);
+                                const isBusy = eng.availabilityStatus === 'On Duty' || eng.availabilityStatus === 'Not Available';
+
                                 return (
                                     <TouchableOpacity
                                         key={eng.id}
-                                        style={[styles.engineerCard, isSelected && styles.selectedEngineerCard]}
+                                        style={[
+                                            styles.engineerCard,
+                                            isSelected && styles.selectedEngineerCard,
+                                            isBusy && !isSelected && { borderLeftWidth: 4, borderLeftColor: '#f39c12' } // Orange warning border
+                                        ]}
                                         onPress={() => toggleEngineer(eng)}
                                     >
                                         <View style={styles.engineerInfo}>
-                                            <Text style={[styles.itemTitle, isSelected && { color: '#6389DA' }]}>
-                                                {eng.name}
-                                            </Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                                <Text style={[styles.itemTitle, isSelected && { color: '#6389DA' }]}>
+                                                    {eng.name}
+                                                </Text>
+                                                {isBusy && <Ionicons name="warning" size={14} color="#f39c12" style={{ marginLeft: 5 }} />}
+                                            </View>
                                             <Text style={styles.itemSubtitle}>{eng.skillSet || 'General Technician'}</Text>
                                         </View>
 
@@ -525,9 +551,9 @@ export default function NewTaskScreen() {
                                             {isSelected ? (
                                                 <Ionicons name="checkmark-circle" size={24} color="#6389DA" />
                                             ) : (
-                                                    <View style={[styles.statusBadge, { backgroundColor: eng.availabilityStatus === 'Available' ? '#E7F9ED' : '#FFEBEB' }]}>
-                                                        <Text style={[styles.statusText, { color: eng.availabilityStatus === 'Available' ? '#1e8449' : '#c0392b' }]}>
-                                                            {eng.availabilityStatus}
+                                                <View style={[styles.statusBadge, { backgroundColor: eng.availabilityStatus === 'Available' ? '#E7F9ED' : '#FFEBEB' }]}>
+                                                    <Text style={[styles.statusText, { color: eng.availabilityStatus === 'Available' ? '#1e8449' : '#c0392b' }]}>
+                                                        {eng.availabilityStatus}
                                                     </Text>
                                                 </View>
                                             )}

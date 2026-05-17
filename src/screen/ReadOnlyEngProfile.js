@@ -1,186 +1,166 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { doc, getDoc } from 'firebase/firestore';
+import {
+    ActivityIndicator,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+    Alert
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { db } from '../../firebaseConfig';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
-export default function ReadOnlyEngProfile() {
-    const { id } = useLocalSearchParams();
-    const [userData, setUserData] = useState(null);
+export function ROEP() {
+    const { name } = useLocalSearchParams();
+    const router = useRouter();
+    const [engineerData, setEngineerData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const ref = doc(db, 'user', id);
-                const snap = await getDoc(ref);
+        const fetchEngineer = async () => {
+            if (!name) {
+                setLoading(false);
+                return;
+            }
 
-                if (snap.exists()) {
-                    setUserData({ id: snap.id, ...snap.data() });
+            try {
+                // MATCHING SCREENSHOT: Collection is 'user' (singular)
+                const userRef = collection(db, 'user');
+
+                // MATCHING SCREENSHOT: Field is 'name'
+                const q = query(userRef, where('name', '==', name));
+
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    const data = querySnapshot.docs[0].data();
+                    setEngineerData(data);
+                } else {
+                    console.warn(`No document found in 'user' collection with name: ${name}`);
+                    // Fallback: If your chart passes a username instead of name
+                    const qFallback = query(userRef, where('username', '==', name));
+                    const fallbackSnapshot = await getDocs(qFallback);
+
+                    if (!fallbackSnapshot.empty) {
+                        setEngineerData(fallbackSnapshot.docs[0].data());
+                    }
                 }
-            } catch (err) {
-                console.log(err);
+            } catch (error) {
+                console.error("Firestore Error:", error);
+                Alert.alert("Database Error", "Check if collection name 'user' exists.");
             } finally {
                 setLoading(false);
             }
         };
 
-        if (id) fetchUser();
-    }, [id]);
+        fetchEngineer();
+    }, [name]);
 
-    const parseDate = (val) => {
-        if (!val) return null;
-        if (val?.toDate) return val.toDate();
-        const d = new Date(val);
-        return isNaN(d) ? null : d;
+    // Format DOB based on your screenshot format
+    const formatDOB = (dobValue) => {
+        if (!dobValue) return 'Not Provided';
+        if (dobValue?.toDate) return dobValue.toDate().toLocaleDateString('en-GB');
+        return String(dobValue);
     };
 
-    const formatDate = (val) => {
-        const d = parseDate(val);
-        return d ? d.toLocaleDateString('en-GB') : 'Not provided';
-    };
-
-    const formatTime = (val) => {
-        const d = parseDate(val);
-        return d
-            ? d.toLocaleString('en-GB', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            })
-            : 'Never';
-    };
-
-    if (loading) {
-        return (
-            <View style={styles.center}>
-                <Text>Loading...</Text>
-            </View>
-        );
-    }
+    if (loading) return (
+        <View style={styles.center}><ActivityIndicator size="large" color="#6389DA" /></View>
+    );
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* Header with Back Button */}
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={26} color="black" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Engineer Profile</Text>
+                <View style={{ width: 26 }} />
+            </View>
+
             <ScrollView contentContainerStyle={styles.content}>
-
-                {/* Avatar */}
-                <View style={styles.card}>
-                    <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>
-                            {userData?.name?.charAt(0)?.toUpperCase() || 'U'}
-                        </Text>
+                {!engineerData ? (
+                    <View style={styles.errorState}>
+                        <Ionicons name="alert-circle-outline" size={50} color="#CCC" />
+                        <Text style={styles.errorText}>Data for "{name}" not found in 'user' collection.</Text>
                     </View>
-                    <Text style={styles.name}>{userData?.name}</Text>
-                    <Text style={styles.sub}>{userData?.role}</Text>
-                </View>
+                ) : (
+                    <>
+                        <View style={styles.avatarContainer}>
+                            <View style={styles.avatarCircle}>
+                                <Text style={styles.avatarLetter}>
+                                    {engineerData.name?.charAt(0).toUpperCase()}
+                                </Text>
+                            </View>
+                            <Text style={styles.usernameLabel}>{engineerData.name}</Text>
+                            <Text style={styles.roleSub}>{engineerData.role}</Text>
+                        </View>
 
-                {/* Status */}
-                <View style={styles.section}>
-                    <Text style={styles.label}>Availability Status</Text>
-                    <View style={styles.box}>
-                        <Text style={styles.value}>{userData?.availabilityStatus}</Text>
-                    </View>
-                    <Text style={styles.small}>
-                        Last updated: {formatTime(userData?.lastUpdated)}
-                    </Text>
-                </View>
+                        <View style={styles.statusSection}>
+                            <Text style={styles.label}>Availability Status:</Text>
+                            <View style={styles.readOnlyPickerContainer}>
+                                <Text style={styles.statusText}>
+                                    {engineerData.availabilityStatus}
+                                </Text>
+                                <Ionicons name="lock-closed" size={18} color="#BDBDBD" />
+                            </View>
+                        </View>
 
-                {/* Details */}
-                <View style={styles.section}>
-                    <Text style={styles.label}>User ID</Text>
-                    <Text style={styles.field}>{userData?.id}</Text>
+                        <View style={styles.form}>
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Full Name</Text>
+                                <TextInput style={styles.readOnlyInput} value={engineerData.name} editable={false} />
+                            </View>
 
-                    <Text style={styles.label}>Email</Text>
-                    <Text style={styles.field}>{userData?.email}</Text>
+                            <View style={styles.row}>
+                                <View style={[styles.inputGroup, { flex: 1, marginRight: 10 }]}>
+                                    <Text style={styles.inputLabel}>Date of Birth</Text>
+                                    <TextInput style={styles.readOnlyInput} value={formatDOB(engineerData.dob)} editable={false} />
+                                </View>
+                                <View style={[styles.inputGroup, { flex: 1.5 }]}>
+                                    <Text style={styles.inputLabel}>Skillset</Text>
+                                    <TextInput style={styles.readOnlyInput} value={engineerData.skillSet} editable={false} />
+                                </View>
+                            </View>
 
-                    <Text style={styles.label}>Date of Birth</Text>
-                    <Text style={styles.field}>{formatDate(userData?.dob)}</Text>
-
-                    <Text style={styles.label}>Role & Skills</Text>
-                    <Text style={styles.field}>
-                        {userData?.skillSet
-                            ? `${userData.role} (${userData.skillSet})`
-                            : userData?.role}
-                    </Text>
-                </View>
-
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.inputLabel}>Email Address</Text>
+                                <TextInput style={styles.readOnlyInput} value={engineerData.email} editable={false} />
+                            </View>
+                        </View>
+                    </>
+                )}
             </ScrollView>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F6F8FC' },
-
-    content: {
-        padding: 20,
-        paddingBottom: 40,
-    },
-
-    center: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-
-    card: {
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 16,
-        alignItems: 'center',
-        marginBottom: 20,
-        elevation: 3
-    },
-
-    avatar: {
-        width: 90,
-        height: 90,
-        borderRadius: 45,
-        backgroundColor: '#E8ECF7',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 10
-    },
-
-    avatarText: { fontSize: 36, fontWeight: 'bold', color: '#2F80ED' },
-
-    name: { fontSize: 18, fontWeight: '700' },
-    sub: { fontSize: 13, color: '#666', marginTop: 2 },
-
-    section: {
-        backgroundColor: '#fff',
-        padding: 16,
-        borderRadius: 16,
-        marginBottom: 15
-    },
-
-    label: {
-        fontSize: 12,
-        color: '#888',
-        marginTop: 10
-    },
-
-    box: {
-        marginTop: 5,
-        padding: 12,
-        borderRadius: 10,
-        backgroundColor: '#F3F6FF'
-    },
-
-    value: { fontSize: 14, fontWeight: '600' },
-
-    field: {
-        fontSize: 14,
-        paddingVertical: 8,
-        color: '#333'
-    },
-
-    small: {
-        fontSize: 11,
-        color: '#999',
-        marginTop: 6,
-        textAlign: 'center'
-    }
+    container: { flex: 1, backgroundColor: '#FFFFFF' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+    headerTitle: { fontSize: 18, fontWeight: 'bold' },
+    backButton: { padding: 5 },
+    content: { padding: 20 },
+    avatarContainer: { alignItems: 'center', marginBottom: 30 },
+    avatarCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#6389DA', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+    avatarLetter: { fontSize: 45, color: '#FFF', fontWeight: 'bold' },
+    usernameLabel: { fontSize: 20, fontWeight: 'bold', color: '#333' },
+    roleSub: { fontSize: 14, color: '#888', marginTop: 2 },
+    statusSection: { marginBottom: 30 },
+    label: { fontSize: 14, fontWeight: 'bold', color: '#666', marginBottom: 10 },
+    readOnlyPickerContainer: { flexDirection: 'row', height: 50, borderWidth: 1, borderColor: '#E8E8E8', borderRadius: 12, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15, backgroundColor: '#F9F9F9' },
+    statusText: { fontSize: 16, color: '#333' },
+    form: { width: '100%' },
+    inputGroup: { marginBottom: 20 },
+    inputLabel: { fontSize: 13, fontWeight: '600', color: '#999', marginBottom: 8, marginLeft: 5 },
+    readOnlyInput: { height: 50, backgroundColor: '#F5F5F5', borderRadius: 12, paddingHorizontal: 15, fontSize: 16, borderWidth: 1, borderColor: '#E8E8E8', color: '#555' },
+    row: { flexDirection: 'row' },
+    center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    errorState: { alignItems: 'center', marginTop: 50 },
+    errorText: { color: '#AAA', marginTop: 10, fontSize: 14 }
 });

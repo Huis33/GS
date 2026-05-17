@@ -285,7 +285,8 @@ const styles = StyleSheet.create({
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
     statusBadge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
     statusText: { fontSize: 12, fontWeight: '700' },
-    fab: { position: 'absolute', bottom: 30, right: 25, backgroundColor: '#2F80ED',
+    fab: {
+        position: 'absolute', bottom: 30, right: 25, backgroundColor: '#2F80ED',
         width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center',
         elevation: 5, shadowColor: '#2F80ED', shadowOpacity: 0.4, shadowRadius: 10
     },
