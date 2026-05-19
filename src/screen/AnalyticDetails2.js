@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from "../../firebaseConfig";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function CoordinatorDetails() {
     const { name } = useLocalSearchParams();
@@ -108,5 +109,5 @@ const styles = StyleSheet.create({
     taskDesc: { fontSize: 13, color: '#666', marginVertical: 5 },
     badge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 2, borderRadius: 5, marginTop: 5 },
     badgeText: { fontSize: 10, fontWeight: 'bold' },
-    emptyText: { textAlign: 'center', color: '#999', marginTop: 20 }
+    emptyText: { textAlign: 'center', color: '#999', marginTop: 20 },
 });

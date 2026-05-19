@@ -114,11 +114,7 @@ export default function ReadOnlyTasksPage() {
             <TouchableOpacity
                 style={[
                     styles.card,
-                    {
-                        backgroundColor: statusStyle.bg,
-                        borderColor: statusStyle.bar,
-                        borderWidth: 1
-                    }
+                    { backgroundColor: isOverdue ? '#FFE5E5' : '#F0F7FF'}
                 ]}
                 onPress={() => router.push({ pathname: '/task-detail', params: { id: item.id } })}
                 activeOpacity={0.9}
@@ -185,38 +181,41 @@ export default function ReadOnlyTasksPage() {
     };
 
     const getProgressWidth = (item) => {
-        // If the task is Done, always 100%
         if (item.status === 'Done') return '100%';
+        if (item.status === 'Not Yet Started' || item.status === 'Not Yet Assigned') return '1%';
 
-        // If Not Yet Started or Assigned, show the 1% we set during creation
-        if (item.status === 'Not Yet Started' || item.status === 'Not Yet Assigned') {
-            return '1%';
-        }
-
-        // For In Progress, use the actual numeric progress from Firebase (e.g., 0.5 -> 50%)
         if (item.status === 'In Progress') {
-            const percentage = Math.round((item.progress || 0.1) * 100);
+            // 1. Grab the raw value
+            let rawProgress = item.progress;
+
+            // 2. If it doesn't exist or is null, default to 10%
+            if (rawProgress === undefined || rawProgress === null) {
+                return '10%';
+            }
+
+            // 3. If it was saved as a string (e.g., "50" or "50%"), convert it to a real number
+            if (typeof rawProgress === 'string') {
+                rawProgress = parseFloat(rawProgress.replace('%', ''));
+            }
+
+            // 4. Handle decimal vs whole number (e.g., 0.5 vs 50)
+            // If the number is 1 or less, assume it's a decimal and multiply by 100
+            let percentage = rawProgress <= 1 ? rawProgress * 100 : rawProgress;
+
+            // 5. Clean up the final number
+            percentage = Math.round(percentage);
+
+            // Fallback if the data is totally corrupted (NaN)
+            if (isNaN(percentage)) return '10%';
+
+            // Keep it safely within 1% and 100%
+            if (percentage < 1) percentage = 1;
+            if (percentage > 100) percentage = 100;
+
             return `${percentage}%`;
         }
 
         return '0%';
-    };
-
-    const getProgressColor = (status) => {
-        switch (status) {
-            case 'Not Yet Assigned':
-            case 'Not Yet Started':
-                return '#B0B0B0'; // grey
-
-            case 'In Progress':
-                return '#F39C12'; // orange
-
-            case 'Done':
-                return '#27AE60'; // green
-
-            default:
-                return '#B0B0B0';
-        }
     };
 
     return (
@@ -267,11 +266,10 @@ const styles = StyleSheet.create({
     tabText: { fontSize: 15, color: '#94A3B8', fontWeight: '600' },
     activeTabText: { color: '#2F80ED' },
     scrollContent: { padding: 16 },
-    card: { backgroundColor: '#C8D9FF', borderRadius: 20, padding: 20, marginBottom: 20, elevation: 5 },
+    card: { borderRadius: 20, padding: 20, marginBottom: 20, elevation: 5 },
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    priorityBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-    priorityDot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-    priorityText: { fontSize: 12, fontWeight: '600', color: '#475569' },
+    priorityBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    priorityText: { fontSize: 12, fontWeight: '600', marginLeft: 4 },
     dateBadge: { flexDirection: 'row', alignItems: 'center' },
     dateText: { marginLeft: 4, color: '#64748B', fontSize: 12, fontWeight: '500' },
     cardTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B', marginBottom: 6 },
@@ -282,7 +280,7 @@ const styles = StyleSheet.create({
     progressPercent: { fontSize: 12, color: '#475569', fontWeight: '700' },
     progressBarContainer: { height: 6, backgroundColor: '#E2E8F0', borderRadius: 3, overflow: 'hidden' },
     progressBarFill: { height: '100%', borderRadius: 3 },
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
     statusBadge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
     statusText: { fontSize: 12, fontWeight: '700' },
     fab: {

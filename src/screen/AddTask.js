@@ -54,24 +54,27 @@ export default function NewTaskScreen() {
 
         // AUTO-OPEN TIME PICKER ON ANDROID
         if (Platform.OS === 'android' && pickerMode === 'date') {
-            openPicker('time');
+            // ✅ FIX: Pass the newly selected 'currentDate' directly to the time picker
+            openPicker('time', currentDate);
         }
     };
 
-    // --- UPDATED DATE/TIME LOGIC ---
-    const openPicker = (mode) => {
+    // ✅ FIX: Add 'overrideDate' parameter so it doesn't rely on stale state
+    const openPicker = (mode, overrideDate = null) => {
         Keyboard.dismiss();
+
         if (Platform.OS === 'android') {
+            setPickerMode(mode); // Keep track of the mode
             DateTimePickerAndroid.open({
-                value: dueDate,
-                mode: mode, // 'date' or 'time'
+                value: overrideDate || dueDate, // Use the overrideDate if it exists
+                mode: mode,
                 is24Hour: true,
                 onChange: handleDatePickerChange,
             });
             return;
         }
-        // For iOS, you might need a separate state for showDatePicker 
-        // or use a modal, but this logic handles the mode selection:
+
+        // iOS Logic
         setPickerMode(mode);
         setShowDatePicker(true);
     };

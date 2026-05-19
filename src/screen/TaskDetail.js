@@ -25,6 +25,10 @@ export default function TaskDetailsScreen() {
 
     const isOwner = auth.currentUser?.uid === task?.createdBy;
     const canExport = true;
+    // ADD THIS: Check if the task is 'Done'
+    const isTaskDone = task?.status === 'Done';
+    // Define who can edit (Owner, but NOT if the task is Done)
+    const canEdit = isOwner && !isTaskDone;
 
     // --- HELPERS ---
     const formatDate = (timestamp) => {
@@ -131,12 +135,17 @@ export default function TaskDetailsScreen() {
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={26} color={COLORS.textDark} />
                 </TouchableOpacity>
+
                 <Text style={styles.headerTitle}>Task Details</Text>
-                {isOwner ? (
+
+                {/* CHANGE THIS: Use canEdit instead of isOwner */}
+                {canEdit ? (
                     <TouchableOpacity onPress={() => router.push({ pathname: '/edit-task', params: { id: id } })}>
                         <Ionicons name="create-outline" size={26} color={COLORS.primary} />
                     </TouchableOpacity>
-                ) : <View style={{ width: 26 }} />}
+                ) : (
+                    <View style={{ width: 26 }} />
+                )}
             </View>
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>

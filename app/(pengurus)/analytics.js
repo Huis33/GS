@@ -1,22 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    SafeAreaView,
-    ActivityIndicator,
-    Dimensions,
-    StatusBar
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { PieChart } from "react-native-chart-kit";
-
-// 1. IMPORT CENTRALIZED THEME & SERVICES
 import { listenToAnalytics } from '../../src/service/AnalyticsService';
 import { COLORS } from '../../constants/theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const screenWidth = Dimensions.get("window").width;
 

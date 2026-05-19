@@ -12,7 +12,7 @@ import {
     ActivityIndicator
 } from 'react-native';
 import { db, auth } from '../../../firebaseConfig';
-import { collection, query, onSnapshot, updateDoc, doc, orderBy, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, updateDoc, doc, orderBy, where, Timestamp } from 'firebase/firestore';
 
 export default function TasksPage() {
     const router = useRouter();
@@ -54,9 +54,10 @@ export default function TasksPage() {
         try {
             const taskRef = doc(db, 'task', taskId);
 
-            // Logic: If moving to Done, force progress to 100%
+            // Logic: If moving to Done, force progress to 100% and record the time
             if (updates.status === 'Done') {
                 updates.progress = 1.0;
+                updates.completedAt = Timestamp.now(); // ✅ SAVES THE EXACT TIME IT WAS FINISHED
             }
             // Logic: If moving back to Not Yet Started, force progress to 0%
             if (updates.status === 'In Progress' && updates.progress < 0.1) {
@@ -106,8 +107,11 @@ export default function TasksPage() {
 
     const formatFirebaseDate = (timestamp) => {
         if (!timestamp) return 'No Date';
-        const date = timestamp.toDate();
-        return date.toLocaleDateString('en-GB'); // Format: DD/MM/YYYY
+        // Bulletproof check for Firebase Timestamp vs String
+        if (typeof timestamp.toDate === 'function') {
+            return timestamp.toDate().toLocaleDateString('en-GB');
+        }
+        return new Date(timestamp).toLocaleDateString('en-GB');
     };
 
     const TaskCard = ({ item }) => {
@@ -122,20 +126,39 @@ export default function TasksPage() {
             let deadline;
 
             if (item.dueDate && typeof item.dueDate.toDate === 'function') {
-                // It's a Firebase Timestamp
                 deadline = item.dueDate.toDate();
             } else {
-                // It's a String or ISO date
                 deadline = new Date(item.dueDate);
             }
 
             const today = new Date();
-
             today.setHours(0, 0, 0, 0);
             deadline.setHours(23, 59, 59, 999);
 
             return now > deadline;
         }, [item.dueDate, isDone]);
+
+        // --- BULLETPROOF PROGRESS CALCULATOR ---
+        const safeProgress = useMemo(() => {
+            if (item.status === 'Done') return 1.0;
+            if (item.status === 'Not Yet Started' || item.status === 'Not Yet Assigned') return 0.01; // 1%
+
+            let rawProgress = item.progress;
+            if (rawProgress === undefined || rawProgress === null) return 0.1; // Default 10%
+
+            if (typeof rawProgress === 'string') {
+                rawProgress = parseFloat(rawProgress.replace('%', ''));
+            }
+
+            // If stored as 50 instead of 0.5, convert it
+            let finalProgress = rawProgress > 1 ? rawProgress / 100 : rawProgress;
+
+            if (isNaN(finalProgress)) return 0.1;
+            if (finalProgress < 0.01) return 0.01;
+            if (finalProgress > 1) return 1.0;
+
+            return finalProgress;
+        }, [item.progress, item.status]);
 
         return (
             <View style={[
@@ -174,32 +197,33 @@ export default function TasksPage() {
                 <View style={styles.progressContainer}>
                     <View style={styles.progressLabelRow}>
                         <Text style={styles.progressLabel}>Progress</Text>
-                        <Text style={styles.progressPercentText}>{Math.round(item.progress * 100)}%</Text>
+                        {/* Use safeProgress here */}
+                        <Text style={styles.progressPercentText}>{Math.round(safeProgress * 100)}%</Text>
                     </View>
 
                     <View style={styles.sliderWrapper}>
                         {isInProgress ? (
-                            // Interactive Slider only for In Progress
+                            // Interactive Slider using safeProgress
                             <Slider
                                 style={{ width: '100%', height: 40 }}
                                 minimumValue={0}
                                 maximumValue={1}
-                                value={item.progress}
+                                value={safeProgress}
                                 minimumTrackTintColor={isOverdue ? "#E74C3C" : "#27AE60"}
                                 maximumTrackTintColor="rgba(0,0,0,0.1)"
                                 thumbTintColor={isOverdue ? "#E74C3C" : "#27AE60"}
                                 onSlidingComplete={(val) => updateTaskInFirebase(item.id, { progress: val })}
                             />
                         ) : (
-                            // Static bar for Not Yet Started or Done
+                            // Static bar using safeProgress
                             <View style={styles.staticBarContainer}>
                                 <View style={styles.progressBarBg}>
-                                        <View style={[
-                                            styles.progressBarFill,
-                                            { width: `${item.progress * 100}%` },
-                                            isOverdue && { backgroundColor: '#E74C3C' }
-                                        ]} />
-                                    </View>
+                                    <View style={[
+                                        styles.progressBarFill,
+                                        { width: `${safeProgress * 100}%` },
+                                        isOverdue && { backgroundColor: '#E74C3C' }
+                                    ]} />
+                                </View>
                             </View>
                         )}
                     </View>
@@ -255,11 +279,22 @@ export default function TasksPage() {
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
                 {(() => {
                     // 1. Filter the tasks based on the active tab
-                    const filteredTasks = taskList.filter(t =>
+                    let filteredTasks = taskList.filter(t =>
                         activeTab === 'Done' ? t.status === 'Done' : t.status !== 'Done'
                     );
 
-                    // 2. If no tasks match the filter, show the empty message
+                    // 2. ✅ NEW: If on the Done tab, sort by latest completed time first
+                    if (activeTab === 'Done') {
+                        filteredTasks.sort((a, b) => {
+                            // Safely extract timestamps (older tasks without completedAt will fall to the bottom)
+                            const timeA = a.completedAt?.toDate ? a.completedAt.toDate().getTime() : 0;
+                            const timeB = b.completedAt?.toDate ? b.completedAt.toDate().getTime() : 0;
+
+                            return timeB - timeA; // Sorts descending (latest first)
+                        });
+                    }
+
+                    // 3. If no tasks match the filter, show the empty message
                     if (filteredTasks.length === 0) {
                         return (
                             <View style={styles.emptyContainer}>
@@ -277,7 +312,7 @@ export default function TasksPage() {
                         );
                     }
 
-                    // 3. Otherwise, map through and show the TaskCards
+                    // 4. Otherwise, map through and show the TaskCards
                     return filteredTasks.map(task => <TaskCard key={task.id} item={task} />);
                 })()}
             </ScrollView>
