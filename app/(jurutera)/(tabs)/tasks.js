@@ -14,7 +14,6 @@ import {
 import { db, auth } from '../../../firebaseConfig';
 import { collection, query, onSnapshot, updateDoc, doc, orderBy, where, Timestamp } from 'firebase/firestore';
 import { sendPushNotification } from '../../../src/service/NotificationService';
-import * as Notifications from 'expo-notifications';
 
 export default function TasksPage() {
     const router = useRouter();
@@ -106,13 +105,7 @@ export default function TasksPage() {
         // We find the task name from the taskList to make the message specific
         const task = taskList.find(t => t.id === taskId);
 
-        await Notifications.scheduleNotificationAsync({
-            content: {
-                title: "Task Status Updated 🚀",
-                body: `Task "${task?.name || 'a task'}" is now marked as ${newStatus}.`,
-            },
-            trigger: { seconds: 1 },
-        });
+        await sendPushNotification(task?.name || 'a task', newStatus);
 
             setOpenStatusId(null); // Close the dropdown
         } catch (error) {

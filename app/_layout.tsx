@@ -3,21 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import 'react-native-reanimated';
 import { UserProvider, useUser } from '../src/context/UserContext';
-import * as Notifications from 'expo-notifications';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { configureNotifications, requestNotificationPermissions } from '../src/service/NotificationService';
 
 function RootLayoutNav() {
   const { userData, isLoading } = useUser();
@@ -25,39 +11,55 @@ function RootLayoutNav() {
   const router = useRouter();
   const navigationState = useRootNavigationState();
 
-  // Request notifications permission once
+  const rootSegment = segments[0] ? String(segments[0]) : '';
+
+  // 1. Request notifications permission once on mount
   useEffect(() => {
-    const requestPermissions = async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
+    const setupNotifications = async () => {
+      await configureNotifications();
+      const granted = await requestNotificationPermissions();
+      if (!granted) {
         console.log('Notifications permission not granted');
       }
     };
-    requestPermissions();
+    setupNotifications();
   }, []);
 
-  // Redirection Logic
+  // 2. Redirection logic
   useEffect(() => {
-    if (!navigationState?.key || isLoading) return;
+    if (!navigationState?.key || isLoading) {
+      console.log('Layout waiting: Navigation ready:', !!navigationState?.key, 'Auth Loading:', isLoading);
+      return;
+    }
 
-    const rootSegment = segments[0] ? String(segments[0]) : '';
     const isGuestArea = rootSegment === '' || rootSegment === 'index' || rootSegment === 'forgot-password';
 
     // SCENARIO A: NOT LOGGED IN
     if (!userData) {
+      console.log('No user data found. Guest Area:', isGuestArea);
       if (!isGuestArea) router.replace('/');
       return;
     }
 
     // SCENARIO B: LOGGED IN - Role Detection
-    const role = (userData?.role || '').trim().toLowerCase();
+    const rawRole = userData?.role || '';
+    const role = rawRole.trim().toLowerCase();
+    console.log('Logged in user role detected:', role);
 
     const isJurutera = role === 'engineer' || role === 'jurutera';
     const isPengurus = role === 'operationmanager' || role === 'pengurus';
     const isPenyelaras = role === 'servicecoordinator' || role === 'penyelaras';
 
+    // FAILSAFE: If the role is not recognized
+    if (!isJurutera && !isPengurus && !isPenyelaras) {
+      console.error("CRITICAL: Role not recognized. Check Firestore 'role' field. Value was:", role);
+      if (!isGuestArea) router.replace('/');
+      return;
+    }
+
     // REDIRECTION LOGIC
     if (isGuestArea) {
+      console.log('User is in guest area, redirecting to dashboard...');
       if (isJurutera) {
         router.replace('/(jurutera)' as Href);
       } else if (isPengurus) {
@@ -65,8 +67,10 @@ function RootLayoutNav() {
       } else if (isPenyelaras) {
         router.replace('/(penyelaras)' as Href);
       }
+    } else {
+      console.log('User is already in their respective dashboard area.');
     }
-  }, [userData, isLoading, segments, navigationState?.key]);
+  }, [userData, isLoading, rootSegment, navigationState?.key]);
 
   return <Stack screenOptions={{ headerShown: false }} />;
 }

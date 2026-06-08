@@ -1,22 +1,31 @@
-// src/service/NotificationService.js
-import * as Notifications from 'expo-notifications';
+import { setNotificationHandler } from 'expo-notifications/build/NotificationsHandler';
+import { requestPermissionsAsync } from 'expo-notifications/build/NotificationPermissions';
+import scheduleNotificationAsync from 'expo-notifications/build/scheduleNotificationAsync';
 
-// Set how the notification looks when it arrives
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-    }),
-});
+export async function configureNotifications() {
+    setNotificationHandler({
+        handleNotification: async () => ({
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: false,
+            shouldShowBanner: true,
+            shouldShowList: true,
+        }),
+    });
+}
+
+export async function requestNotificationPermissions() {
+    const { status } = await requestPermissionsAsync();
+    return status === 'granted';
+}
 
 export const sendPushNotification = async (taskName, status) => {
-    await Notifications.scheduleNotificationAsync({
+    await scheduleNotificationAsync({
         content: {
-            title: "Task Update 🚀",
+            title: 'Task Update 🚀',
             body: `The task "${taskName}" is now ${status}.`,
             data: { data: 'goes here' },
         },
-        trigger: { seconds: 1 }, // Send 1 second from now
+        trigger: { seconds: 1 },
     });
 };

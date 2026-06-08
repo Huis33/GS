@@ -39,6 +39,13 @@
           }
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#6389DA"
+        }
+      ],
       "@react-native-community/datetimepicker",
       [
         "expo-media-library",
@@ -47,7 +54,9 @@
           "saveToLibraryPermission": "Allow $(PRODUCT_NAME) to save files to your device.",
           "isAccessMediaLocationEnabled": true
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
