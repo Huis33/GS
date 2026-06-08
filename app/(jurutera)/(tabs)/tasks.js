@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { db, auth } from '../../../firebaseConfig';
 import { collection, query, onSnapshot, updateDoc, doc, orderBy, where, Timestamp } from 'firebase/firestore';
+import { sendPushNotification } from '../../../src/service/NotificationService';
+import * as Notifications from 'expo-notifications';
 
 export default function TasksPage() {
     const router = useRouter();
@@ -71,7 +73,7 @@ export default function TasksPage() {
         }
     };
 
-    const handleStatusSelect = (taskId, currentStatus, newStatus) => {
+    const handleStatusSelect = async (taskId, currentStatus, newStatus) => {
         // 2. LOGIC: Prevent moving back to 'Not Yet Started' if already 'In Progress' or 'Done'
         if (newStatus === 'Not Yet Started' && (currentStatus === 'In Progress' || currentStatus === 'Done')) {
             Alert.alert("Action Blocked", "You cannot move a task back to 'Not Yet Started' once it has begun.");
@@ -93,6 +95,28 @@ export default function TasksPage() {
         } else {
             updateTaskInFirebase(taskId, { status: newStatus });
             setOpenStatusId(null);
+        }
+        try {
+        if (currentStatus === newStatus) return;
+
+        // 2. Perform the Firebase update
+        await updateTaskInFirebase(taskId, { status: newStatus });
+
+        // 3. Trigger the Push Notification
+        // We find the task name from the taskList to make the message specific
+        const task = taskList.find(t => t.id === taskId);
+
+        await Notifications.scheduleNotificationAsync({
+            content: {
+                title: "Task Status Updated 🚀",
+                body: `Task "${task?.name || 'a task'}" is now marked as ${newStatus}.`,
+            },
+            trigger: { seconds: 1 },
+        });
+
+            setOpenStatusId(null); // Close the dropdown
+        } catch (error) {
+            console.error("Error sending notification: ", error);
         }
     };
 
