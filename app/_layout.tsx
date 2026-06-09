@@ -3,7 +3,10 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import 'react-native-reanimated';
 import { UserProvider, useUser } from '../src/context/UserContext';
-import { configureNotifications, requestNotificationPermissions } from '../src/service/NotificationService';
+import {
+  configureNotifications,
+  requestNotificationPermissions,
+} from '../src/service/NotificationService';
 
 function RootLayoutNav() {
   const { userData, isLoading } = useUser();

@@ -13,7 +13,11 @@ import {
 } from 'react-native';
 import { db, auth } from '../../../firebaseConfig';
 import { collection, query, onSnapshot, updateDoc, doc, orderBy, where, Timestamp } from 'firebase/firestore';
-import { sendPushNotification } from '../../../src/service/NotificationService';
+import {
+    sendPushNotification,
+    syncAllTaskDueNotifications,
+    cancelTaskDueNotifications,
+} from '../../../src/service/NotificationService';
 
 export default function TasksPage() {
     const router = useRouter();
@@ -24,11 +28,11 @@ export default function TasksPage() {
     const statusOptions = ['Not Yet Started', 'In Progress', 'Done'];
     //const progressOptions = [0, 0.25, 0.5, 0.75, 1.0];
 
+    // Effect 1: Firestore subscription (runs once)
     useEffect(() => {
         const user = auth.currentUser;
         if (!user) return;
 
-        // 1. FILTER: Only tasks where assignedIds array contains the current user's UID
         const q = query(
             collection(db, 'task'),
             where('assignedIds', 'array-contains', user.uid),
@@ -49,6 +53,15 @@ export default function TasksPage() {
 
         return () => unsubscribe();
     }, []);
+
+    // Effect 2: schedule due-date notifications when task list changes
+    useEffect(() => {
+        if (taskList.length === 0) return;
+
+        syncAllTaskDueNotifications(taskList).catch((err) =>
+            console.error('Error syncing due notifications:', err)
+        );
+    }, [taskList]);
 
     // 2. Update Firebase when local state changes
     const updateTaskInFirebase = async (taskId, updates) => {
@@ -73,43 +86,41 @@ export default function TasksPage() {
     };
 
     const handleStatusSelect = async (taskId, currentStatus, newStatus) => {
-        // 2. LOGIC: Prevent moving back to 'Not Yet Started' if already 'In Progress' or 'Done'
         if (newStatus === 'Not Yet Started' && (currentStatus === 'In Progress' || currentStatus === 'Done')) {
             Alert.alert("Action Blocked", "You cannot move a task back to 'Not Yet Started' once it has begun.");
             setOpenStatusId(null);
             return;
         }
 
+        if (currentStatus === newStatus) {
+            setOpenStatusId(null);
+            return;
+        }
+
+        const applyStatusChange = async () => {
+            try {
+                await updateTaskInFirebase(taskId, { status: newStatus });
+
+                const task = taskList.find(t => t.id === taskId);
+                await sendPushNotification(task?.name || 'a task', newStatus);
+
+                if (newStatus === 'Done') {
+                    await cancelTaskDueNotifications(taskId);
+                }
+
+                setOpenStatusId(null);
+            } catch (error) {
+                console.error("Error updating status:", error);
+            }
+        };
+
         if (newStatus === 'Done') {
             Alert.alert("Finalize Task", "Once marked as Done, you cannot change the status. Proceed?", [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Confirm",
-                    onPress: () => {
-                        updateTaskInFirebase(taskId, { status: newStatus });
-                        setOpenStatusId(null);
-                    }
-                }
+                { text: "Cancel", style: "cancel", onPress: () => setOpenStatusId(null) },
+                { text: "Confirm", onPress: applyStatusChange },
             ]);
         } else {
-            updateTaskInFirebase(taskId, { status: newStatus });
-            setOpenStatusId(null);
-        }
-        try {
-        if (currentStatus === newStatus) return;
-
-        // 2. Perform the Firebase update
-        await updateTaskInFirebase(taskId, { status: newStatus });
-
-        // 3. Trigger the Push Notification
-        // We find the task name from the taskList to make the message specific
-        const task = taskList.find(t => t.id === taskId);
-
-        await sendPushNotification(task?.name || 'a task', newStatus);
-
-            setOpenStatusId(null); // Close the dropdown
-        } catch (error) {
-            console.error("Error sending notification: ", error);
+            await applyStatusChange();
         }
     };
 
