@@ -1,6 +1,5 @@
 // app/_layout.tsx
 import { Href, Stack, useRootNavigationState, useRouter, useSegments } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import 'react-native-reanimated';
 import { UserProvider, useUser } from '../src/context/UserContext';
@@ -8,6 +7,8 @@ import { AlertsProvider } from '../src/context/AlertsContext';
 
 // Centralize initialization rules via your local service parameters
 import { configureNotifications, requestNotificationPermissions } from '../src/service/NotificationService';
+import NotificationModalWrapper from '../components/NotificationModalWrapper';
+import { StatusBar } from 'react-native';
 
 // 🗑️ REMOVE: import * as Notifications from 'expo-notifications';
 
@@ -55,14 +56,28 @@ function RootLayoutNav() {
     }
   }, [userData, isLoading, rootSegment, navigationState?.key]);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  if (isLoading) return null;
+
+  if (!userData) {
+    return <Stack screenOptions={{ headerShown: false }} />;
+  }
+
+  return (
+    <AlertsProvider>
+      <NotificationModalWrapper>
+        <Stack screenOptions={{ headerShown: false }} />
+      </NotificationModalWrapper>
+    </AlertsProvider>
+  );
 }
 
 export default function RootLayout() {
   return (
     <UserProvider>
       <AlertsProvider>
-        <StatusBar style="auto" />
+        {/* 🚀 Updated: Use style="dark" for light backgrounds */}
+        {/* translucent={false} ensures the header content doesn't overlap the status icons */}
+        <StatusBar translucent={false} backgroundColor="#F8FAFF" />
         <RootLayoutNav />
       </AlertsProvider>
     </UserProvider>

@@ -276,9 +276,21 @@ const styles = StyleSheet.create({
     badgeOverlay: { position: 'absolute', top: 0, right: 0, backgroundColor: '#E74C3C', width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
     badgeText: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
 
-    calendarWrapper: { marginHorizontal: 20, backgroundColor: '#FFF', borderRadius: 20, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 10, marginBottom: 25 },
+    calendarWrapper: {
+        marginHorizontal: 20,
+        backgroundColor: '#FFF',
+        borderRadius: 20,
+        overflow: 'hidden',
+        elevation: 4,
+        marginBottom: 30, // Increased from 25
+        marginTop: 10
+    },
     calendarInner: { paddingBottom: 10 },
-    sectionHeader: { paddingHorizontal: 25, marginBottom: 15 },
+    sectionHeader: {
+        paddingHorizontal: 25,
+        marginBottom: 15,
+        marginTop: 10 // 🚀 Adds clear air between Calendar and Heading
+    },
     sectionTitle: { fontSize: 22, fontWeight: '800', color: '#1A1A1A' },
     taskListContainer: { flex: 1 },
     taskCard: { backgroundColor: '#D1E0FF', marginHorizontal: 20, borderRadius: 24, padding: 22, marginBottom: 16, elevation: 2, shadowColor: '#6389DA', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 5 },

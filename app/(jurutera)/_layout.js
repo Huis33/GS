@@ -1,14 +1,15 @@
+// app/(jurutera)/_layout.js
 import { Ionicons } from '@expo/vector-icons';
 import { DrawerContentScrollView, DrawerItem, DrawerItemList } from '@react-navigation/drawer';
 import { DrawerActions } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
-import React, { useState } from 'react';
-import { Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUser } from '../../src/context/UserContext';
-import HeaderRight from '../../components/HeaderRight';
 import { useAlerts } from '../../src/context/AlertsContext';
+import HeaderRight from '../../components/HeaderRight';
 
 function CustomDrawerContent(props) {
     const { userData } = useUser();
@@ -26,7 +27,7 @@ function CustomDrawerContent(props) {
                 <Text style={styles.userRole}>{userData?.role || 'Engineer'}</Text>
             </View>
 
-            {/* 2. Main Navigation Items (Filtered via Screen Options instead of JS logic) */}
+            {/* 2. Main Navigation Items */}
             <View style={{ flex: 1 }}>
                 <DrawerItemList {...props} />
             </View>
@@ -45,8 +46,7 @@ function CustomDrawerContent(props) {
 }
 
 export default function JuruteraDrawerLayout() {
-    const [isNotifVisible, setIsNotifVisible] = useState(false);
-    const { alerts, markAllRead } = useAlerts();
+    const { toggleModal, markAllRead } = useAlerts();
     const { userData } = useUser();
 
     return (
@@ -71,12 +71,7 @@ export default function JuruteraDrawerLayout() {
                             Welcome, {userData?.name || 'User'}
                         </Text>
                     ),
-                    headerRight: () => (
-                        <HeaderRight onOpen={() => {
-                            setIsNotifVisible(true);
-                            markAllRead();
-                        }} />
-                    ),
+                    headerRight: () => <HeaderRight />,
                     drawerActiveTintColor: '#6389DA',
                 })}
             >
@@ -84,8 +79,7 @@ export default function JuruteraDrawerLayout() {
                 <Drawer.Screen
                     name="(tabs)"
                     options={{
-                        drawerItemStyle: { display: 'none' }, // This hides it from the sidebar list
-                        //headerShown: false,                  // Keeps the tab navigator's own header (if any)
+                        drawerItemStyle: { display: 'none' },
                     }}
                 />
 
@@ -106,29 +100,7 @@ export default function JuruteraDrawerLayout() {
                         ),
                     })}
                 />
-
             </Drawer>
-
-            <Modal visible={isNotifVisible} transparent={true} animationType="fade">
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalCard}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Alerts Center</Text>
-                            <TouchableOpacity onPress={() => setIsNotifVisible(false)}>
-                                <Ionicons name="close" size={24} color="#666" />
-                            </TouchableOpacity>
-                        </View>
-                        <ScrollView style={{ maxHeight: 300 }}>
-                            {alerts.length > 0 ? alerts.map(n => (
-                                <View key={n.id} style={styles.notifItem}>
-                                    <Text style={styles.notifTitle}>{n.title}</Text>
-                                    <Text>{n.body}</Text>
-                                </View>
-                            )) : <Text>No alerts</Text>}
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal>
         </GestureHandlerRootView>
     );
 }
@@ -156,10 +128,4 @@ const styles = StyleSheet.create({
         color: '#000',
         fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
     },
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 20 },
-    modalCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20 },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-    modalTitle: { fontSize: 18, fontWeight: 'bold' },
-    notifItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: '#EEE' },
-    notifTitle: { fontWeight: 'bold' }
 });

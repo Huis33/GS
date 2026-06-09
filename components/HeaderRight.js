@@ -5,15 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAlerts } from '../src/context/AlertsContext';
 
 export default function HeaderRight({ onOpen }) {
-    const { unreadCount } = useAlerts();
+    const { unreadCount, markAllRead, toggleModal } = useAlerts();
 
     return (
-        <TouchableOpacity onPress={onOpen} style={styles.notifButton}>
+        <TouchableOpacity onPress={() => { markAllRead(); toggleModal(); }} style={styles.notifButton}>
             <Ionicons name="notifications-outline" size={26} color="#1A1A1A" />
             {unreadCount > 0 && (
-                <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{unreadCount}</Text>
-                </View>
+                <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount}</Text></View>
             )}
         </TouchableOpacity>
     );
