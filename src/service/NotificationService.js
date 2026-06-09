@@ -1,7 +1,22 @@
-import * as Notifications from 'expo-notifications';
-import cancelScheduledNotificationAsync from 'expo-notifications/build/cancelScheduledNotificationAsync';
+// src/service/NotificationService.js
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-const DUE_SOON_HOURS = 24; // adjust as needed
+// Safe wrapper to eliminate immediate auto-registration faults on startup inside Expo Go (SDK 53+)
+const getNotifications = () => {
+    if (Platform.OS === 'android' && Constants.appOwnership === 'expo') {
+        return {
+            scheduleNotificationAsync: async () => 'mock-notification-id',
+            cancelScheduledNotificationAsync: async () => { },
+            setNotificationHandler: () => { },
+            requestPermissionsAsync: async () => ({ status: 'granted' }),
+            SchedulableTriggerInputTypes: { DATE: 'date' }
+        };
+    }
+    return require('expo-notifications');
+};
+
+const DUE_SOON_HOURS = 24;
 
 const dueSoonId = (taskId) => `due_soon_${taskId}`;
 const overdueId = (taskId) => `overdue_${taskId}`;
@@ -12,8 +27,9 @@ function toDate(dueDate) {
 }
 
 export async function cancelTaskDueNotifications(taskId) {
-    await cancelScheduledNotificationAsync(dueSoonId(taskId));
-    await cancelScheduledNotificationAsync(overdueId(taskId));
+    const Notifications = getNotifications();
+    await Notifications.cancelScheduledNotificationAsync(dueSoonId(taskId));
+    await Notifications.cancelScheduledNotificationAsync(overdueId(taskId));
 }
 
 export async function scheduleTaskDueNotifications(task) {
@@ -23,11 +39,25 @@ export async function scheduleTaskDueNotifications(task) {
         return;
     }
 
-    await cancelTaskDueNotifications(id); // clear old schedules first
+    await cancelTaskDueNotifications(id);
 
     const deadline = toDate(dueDate);
     const now = new Date();
     const dueSoonDate = new Date(deadline.getTime() - DUE_SOON_HOURS * 60 * 60 * 1000);
+    const Notifications = getNotifications();
+
+    if (deadline <= now) {
+        await Notifications.scheduleNotificationAsync({
+            identifier: overdueId(id),
+            content: {
+                title: 'Task Overdue ⚠️',
+                body: `"${name}" is overdue! (Due: ${deadline.toLocaleDateString('en-GB')})`,
+                data: { taskId: id, type: 'overdue' },
+            },
+            trigger: null,
+        });
+        return;
+    }
 
     if (dueSoonDate > now) {
         await Notifications.scheduleNotificationAsync({
@@ -39,19 +69,27 @@ export async function scheduleTaskDueNotifications(task) {
             },
             trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: dueSoonDate },
         });
-    }
-
-    if (deadline > now) {
+    } else {
         await Notifications.scheduleNotificationAsync({
-            identifier: overdueId(id),
+            identifier: dueSoonId(id),
             content: {
-                title: 'Task Overdue ⚠️',
-                body: `"${name}" is now overdue.`,
-                data: { taskId: id, type: 'overdue' },
+                title: 'Task Due Soon ⏰',
+                body: `"${name}" is due very soon! (Deadline: ${deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`,
+                data: { taskId: id, type: 'due_soon' },
             },
-            trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: deadline },
+            trigger: null,
         });
     }
+
+    await Notifications.scheduleNotificationAsync({
+        identifier: overdueId(id),
+        content: {
+            title: 'Task Overdue ⚠️',
+            body: `"${name}" is now overdue.`,
+            data: { taskId: id, type: 'overdue' },
+        },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: deadline },
+    });
 }
 
 export async function syncAllTaskDueNotifications(tasks) {
@@ -61,6 +99,7 @@ export async function syncAllTaskDueNotifications(tasks) {
 }
 
 export async function configureNotifications() {
+    const Notifications = getNotifications();
     Notifications.setNotificationHandler({
         handleNotification: async () => ({
             shouldShowAlert: true,
@@ -73,11 +112,13 @@ export async function configureNotifications() {
 }
 
 export async function requestNotificationPermissions() {
+    const Notifications = getNotifications();
     const { status } = await Notifications.requestPermissionsAsync();
     return status === 'granted';
 }
 
 export async function sendPushNotification(taskName, status) {
+    const Notifications = getNotifications();
     await Notifications.scheduleNotificationAsync({
         content: {
             title: 'Task Update 🚀',

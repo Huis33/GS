@@ -86,42 +86,18 @@ export default function TasksPage() {
     };
 
     const handleStatusSelect = async (taskId, currentStatus, newStatus) => {
-        if (newStatus === 'Not Yet Started' && (currentStatus === 'In Progress' || currentStatus === 'Done')) {
-            Alert.alert("Action Blocked", "You cannot move a task back to 'Not Yet Started' once it has begun.");
-            setOpenStatusId(null);
-            return;
-        }
+        if (currentStatus === newStatus) return;
 
-        if (currentStatus === newStatus) {
-            setOpenStatusId(null);
-            return;
-        }
+        // 1. Perform the Firebase update
+        await updateTaskInFirebase(taskId, { status: newStatus });
 
-        const applyStatusChange = async () => {
-            try {
-                await updateTaskInFirebase(taskId, { status: newStatus });
+        // 2. Find the task context fields
+        const task = taskList.find(t => t.id === taskId);
 
-                const task = taskList.find(t => t.id === taskId);
-                await sendPushNotification(task?.name || 'a task', newStatus);
+        // 3. ✅ Call your safe centralized service wrapper instead of the raw native library
+        await sendPushNotification(task?.name, newStatus);
 
-                if (newStatus === 'Done') {
-                    await cancelTaskDueNotifications(taskId);
-                }
-
-                setOpenStatusId(null);
-            } catch (error) {
-                console.error("Error updating status:", error);
-            }
-        };
-
-        if (newStatus === 'Done') {
-            Alert.alert("Finalize Task", "Once marked as Done, you cannot change the status. Proceed?", [
-                { text: "Cancel", style: "cancel", onPress: () => setOpenStatusId(null) },
-                { text: "Confirm", onPress: applyStatusChange },
-            ]);
-        } else {
-            await applyStatusChange();
-        }
+        setOpenStatusId(null);
     };
 
     const getStatusColor = (status) => {
