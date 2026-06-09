@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import 'react-native-reanimated';
 import { UserProvider, useUser } from '../src/context/UserContext';
+import { AlertsProvider } from '../src/context/AlertsContext';
 
 // Centralize initialization rules via your local service parameters
 import { configureNotifications, requestNotificationPermissions } from '../src/service/NotificationService';
@@ -60,8 +61,10 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <UserProvider>
-      <StatusBar style="auto" />
-      <RootLayoutNav />
+      <AlertsProvider>
+        <StatusBar style="auto" />
+        <RootLayoutNav />
+      </AlertsProvider>
     </UserProvider>
   );
 }

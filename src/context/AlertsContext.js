@@ -1,8 +1,8 @@
 // src/context/AlertsContext.js
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { db } from '../firebaseConfig';
+import { db } from '../../firebaseConfig';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { useUser } from '../src/context/UserContext';
+import { useUser } from './UserContext';
 
 const AlertsContext = createContext();
 

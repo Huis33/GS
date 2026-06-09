@@ -141,30 +141,6 @@ export default function AssignedSchedulePage() {
 
     return (
         <View style={{ flex: 1, backgroundColor: '#F8FAFF' }}>
-            {/* 🛠️ NATIVE HEADER CONFIGURED WITH NO TITLE TEXT */}
-            <Tabs.Screen
-                options={{
-                    headerShown: true,
-                    title: '', // 🚀 Removes the word "Dashboard" entirely from header
-                    headerStyle: { backgroundColor: '#F8FAFF' },
-                    headerShadowVisible: false,
-                    headerRight: () => (
-                        <TouchableOpacity
-                            onPress={() => setIsNotifVisible(true)}
-                            style={styles.notifHeaderButton}
-                            activeOpacity={0.7}
-                        >
-                            <Ionicons name="notifications-outline" size={26} color="#1A1A1A" />
-                            {notifications.length > 0 && (
-                                <View style={styles.badgeOverlay}>
-                                    <Text style={styles.badgeText}>{notifications.length}</Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                    ),
-                }}
-            />
-
             <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Calendar Section */}
                 <View style={styles.calendarWrapper}>

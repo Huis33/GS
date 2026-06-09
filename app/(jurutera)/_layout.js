@@ -4,11 +4,10 @@ import { DrawerActions } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
 import React, { useState } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUser } from '../../src/context/UserContext';
 import HeaderRight from '../../components/HeaderRight';
-import { markAllRead } from '../../src/context/AlertsContext';
 import { useAlerts } from '../../src/context/AlertsContext';
 
 function CustomDrawerContent(props) {
@@ -46,8 +45,9 @@ function CustomDrawerContent(props) {
 }
 
 export default function JuruteraDrawerLayout() {
-    const { userData } = useUser();
     const [isNotifVisible, setIsNotifVisible] = useState(false);
+    const { alerts, markAllRead } = useAlerts();
+    const { userData } = useUser();
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -108,6 +108,27 @@ export default function JuruteraDrawerLayout() {
                 />
 
             </Drawer>
+
+            <Modal visible={isNotifVisible} transparent={true} animationType="fade">
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Alerts Center</Text>
+                            <TouchableOpacity onPress={() => setIsNotifVisible(false)}>
+                                <Ionicons name="close" size={24} color="#666" />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView style={{ maxHeight: 300 }}>
+                            {alerts.length > 0 ? alerts.map(n => (
+                                <View key={n.id} style={styles.notifItem}>
+                                    <Text style={styles.notifTitle}>{n.title}</Text>
+                                    <Text>{n.body}</Text>
+                                </View>
+                            )) : <Text>No alerts</Text>}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </GestureHandlerRootView>
     );
 }
@@ -135,4 +156,10 @@ const styles = StyleSheet.create({
         color: '#000',
         fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
     },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 20 },
+    modalCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 20 },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+    modalTitle: { fontSize: 18, fontWeight: 'bold' },
+    notifItem: { padding: 10, borderBottomWidth: 1, borderBottomColor: '#EEE' },
+    notifTitle: { fontWeight: 'bold' }
 });
