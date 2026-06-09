@@ -3,14 +3,16 @@ import { DrawerContentScrollView, DrawerItem, DrawerItemList } from '@react-navi
 import { DrawerActions } from '@react-navigation/native';
 import { router } from 'expo-router';
 import { Drawer } from 'expo-router/drawer';
-import React from 'react';
+import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUser } from '../../src/context/UserContext';
+import HeaderRight from '../../components/HeaderRight';
+import { markAllRead } from '../../src/context/AlertsContext';
+import { useAlerts } from '../../src/context/AlertsContext';
 
 function CustomDrawerContent(props) {
     const { userData } = useUser();
-
     const handleLogout = () => {
         props.navigation.closeDrawer();
         router.push('/logout-confirm');
@@ -45,6 +47,7 @@ function CustomDrawerContent(props) {
 
 export default function JuruteraDrawerLayout() {
     const { userData } = useUser();
+    const [isNotifVisible, setIsNotifVisible] = useState(false);
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -67,6 +70,12 @@ export default function JuruteraDrawerLayout() {
                         <Text style={styles.headerWelcome}>
                             Welcome, {userData?.name || 'User'}
                         </Text>
+                    ),
+                    headerRight: () => (
+                        <HeaderRight onOpen={() => {
+                            setIsNotifVisible(true);
+                            markAllRead();
+                        }} />
                     ),
                     drawerActiveTintColor: '#6389DA',
                 })}
