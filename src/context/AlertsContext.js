@@ -94,8 +94,13 @@ export function AlertsProvider({ children }) {
 
     // 4. Mark Actions
     const markAllRead = () => {
-        const allIds = alerts.map(a => a.id);
-        setReadAlertIds(new Set(allIds));
+        const doneTaskIds = tasks
+            .filter(task => task.status === 'Done')
+            .map(task => [`overdue-${task.id}`, `soon-${task.id}`])
+            .flat();
+
+        // Update the set to include only these IDs
+        setReadAlertIds(new Set(doneTaskIds));
     };
 
     const value = {

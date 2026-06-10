@@ -100,6 +100,8 @@ export default function JuruteraDrawerLayout() {
                         ),
                     })}
                 />
+
+                <Drawer.Screen name="notifications" options={{ title: 'Notifications' }} />
             </Drawer>
         </GestureHandlerRootView>
     );
