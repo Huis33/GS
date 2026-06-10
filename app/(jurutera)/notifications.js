@@ -1,21 +1,18 @@
 // app/(jurutera)/notifications.js
-import React, { useEffect } from 'react';
+import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAlerts } from '../../src/context/AlertsContext';
 
 export default function NotificationsPage() {
-    const { alerts, markAllRead } = useAlerts();
-
-    useEffect(() => {
-        // This will now only "dismiss" the notifications for completed tasks
-        markAllRead();
-    }, []);
+    // 🚀 Extract the exact same 'alerts' array used by the Pop-up Modal.
+    // This array automatically holds all tasks that are NOT 'Done'.
+    const { alerts } = useAlerts();
 
     return (
         <View style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false}>
-                {alerts.length > 0 ? (
+                {alerts && alerts.length > 0 ? (
                     alerts.map(notif => (
                         <View
                             key={notif.id}
@@ -42,7 +39,7 @@ export default function NotificationsPage() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F8FAFF', padding: 20 },
     notifAlertItem: {
-        backgroundColor: '#FFF', // Using card white
+        backgroundColor: '#FFF',
         borderRadius: 14,
         padding: 16,
         marginBottom: 12,

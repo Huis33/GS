@@ -5,16 +5,12 @@ import { useRouter } from 'expo-router';
 import { useAlerts } from '../src/context/AlertsContext';
 
 export default function HeaderRight() {
-    const { unreadCount, markAllRead } = useAlerts();
+    const { unreadCount } = useAlerts();
     const router = useRouter();
 
     return (
         <TouchableOpacity
-            onPress={() => {
-                markAllRead();
-                // Adjust this path based on your actual file structure
-                router.push('/(jurutera)/notifications');
-            }}
+            onPress={() => router.push('/(jurutera)/notifications')}
             style={styles.notifButton}
         >
             <Ionicons name="notifications-outline" size={26} color="#1A1A1A" />

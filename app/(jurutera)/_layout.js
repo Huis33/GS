@@ -46,7 +46,6 @@ function CustomDrawerContent(props) {
 }
 
 export default function JuruteraDrawerLayout() {
-    const { toggleModal, markAllRead } = useAlerts();
     const { userData } = useUser();
 
     return (

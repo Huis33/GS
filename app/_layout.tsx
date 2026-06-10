@@ -4,13 +4,9 @@ import React, { useEffect } from 'react';
 import 'react-native-reanimated';
 import { UserProvider, useUser } from '../src/context/UserContext';
 import { AlertsProvider } from '../src/context/AlertsContext';
-
-// Centralize initialization rules via your local service parameters
 import { configureNotifications, requestNotificationPermissions } from '../src/service/NotificationService';
 import NotificationModalWrapper from '../components/NotificationModalWrapper';
-import { StatusBar } from 'react-native';
-
-// 🗑️ REMOVE: import * as Notifications from 'expo-notifications';
+import { StatusBar } from 'expo-status-bar';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -24,7 +20,6 @@ function RootLayoutNav() {
   const rootSegment = segments[0] ? String(segments[0]) : '';
 
   useEffect(() => {
-    // Initialize notification parameters safely via the dynamic shield service
     configureNotifications();
     requestNotificationPermissions();
   }, []);
@@ -58,27 +53,19 @@ function RootLayoutNav() {
 
   if (isLoading) return null;
 
-  if (!userData) {
-    return <Stack screenOptions={{ headerShown: false }} />;
-  }
-
-  return (
-    <AlertsProvider>
-      <NotificationModalWrapper>
-        <Stack screenOptions={{ headerShown: false }} />
-      </NotificationModalWrapper>
-    </AlertsProvider>
-  );
+  // 🚀 CRITICAL FIX: Always return Stack here unconditionally. No wrappers inside this function!
+  return <Stack screenOptions={{ headerShown: false }} />;
 }
 
 export default function RootLayout() {
   return (
     <UserProvider>
+      {/* 🚀 Move the wrappers to the absolute top of the app tree */}
       <AlertsProvider>
-        {/* 🚀 Updated: Use style="dark" for light backgrounds */}
-        {/* translucent={false} ensures the header content doesn't overlap the status icons */}
-        <StatusBar translucent={false} backgroundColor="#F8FAFF" />
-        <RootLayoutNav />
+        <NotificationModalWrapper>
+          <StatusBar style="dark" translucent={false} backgroundColor="#F8FAFF" />
+          <RootLayoutNav />
+        </NotificationModalWrapper>
       </AlertsProvider>
     </UserProvider>
   );
