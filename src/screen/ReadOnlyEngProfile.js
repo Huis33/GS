@@ -11,7 +11,7 @@ import {
     View,
     Alert
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/ScreenContainer';
 import { db } from '../../firebaseConfig';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -73,7 +73,7 @@ export function ROEP() {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer style={styles.container}>
             {/* Header with Back Button */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -136,7 +136,7 @@ export function ROEP() {
                     </>
                 )}
             </ScrollView>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 

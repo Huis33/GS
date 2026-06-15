@@ -10,7 +10,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { auth, db } from "../../../firebaseConfig";
+import { auth } from '../../../firebaseConfig';
 
 export default function ReadOnlyTasksPage() {
     const router = useRouter();
@@ -238,7 +238,11 @@ export default function ReadOnlyTasksPage() {
             {loading ? (
                 <View style={styles.center}><ActivityIndicator size="large" color="#2F80ED" /></View>
             ) : (
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <ScrollView
+                        // 🚀 3. Add dynamic paddingBottom so list clears the nav bar and button
+                        contentContainerStyle={[styles.scrollContent, { paddingBottom: 96 }]}
+                        showsVerticalScrollIndicator={false}
+                    >
                     {displayedTasks.length > 0 ? (
                         displayedTasks.map((task) => <TaskCard key={task.id} item={task} />)
                     ) : (
@@ -250,7 +254,11 @@ export default function ReadOnlyTasksPage() {
                 </ScrollView>
             )}
 
-            <TouchableOpacity style={styles.fab} onPress={() => router.push('/add-task')}>
+            <TouchableOpacity
+                // 🚀 4. Dynamically lift the button above the OS navigation bar
+                style={styles.fab}
+                onPress={() => router.push('/add-task')}
+            >
                 <Ionicons name="add" size={30} color="white" />
             </TouchableOpacity>
         </View>

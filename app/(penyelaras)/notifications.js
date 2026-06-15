@@ -2,11 +2,13 @@
 import React, { useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAlerts } from '../../src/context/AlertsContext';
 import { getAlertBorderStyle } from '../../src/utils/alertStyles';
 
 export default function NotificationsPage() {
     const { alerts, markAllRead } = useAlerts();
+    const insets = useSafeAreaInsets();
 
     useEffect(() => {
         markAllRead();
@@ -14,7 +16,10 @@ export default function NotificationsPage() {
 
     return (
         <View style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+            >
                 {alerts && alerts.length > 0 ? (
                     alerts.map(notif => (
                         <View

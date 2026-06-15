@@ -13,7 +13,7 @@ import {
     TouchableOpacity,
     View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/ScreenContainer';
 // Firebase imports
 import { deleteDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
@@ -166,7 +166,7 @@ export default function CategoryDetailScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()}>
@@ -273,7 +273,7 @@ export default function CategoryDetailScreen() {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 

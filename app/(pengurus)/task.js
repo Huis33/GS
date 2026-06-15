@@ -11,12 +11,14 @@ import {
     View
 } from 'react-native';
 import { auth, db } from "../../firebaseConfig";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ReadOnlyTasksPage() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState('To be done');
     const [taskList, setTaskList] = useState([]);
     const [loading, setLoading] = useState(true);
+    const insets = useSafeAreaInsets();
 
     const PRIORITY_CONFIG = {
         'Critical': { bg: '#FDECEC', text: '#D32F2F', icon: 'alert-circle' },
@@ -209,7 +211,7 @@ export default function ReadOnlyTasksPage() {
             {loading ? (
                 <View style={styles.center}><ActivityIndicator size="large" color="#2F80ED" /></View>
             ) : (
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}>
                     {displayedTasks.length > 0 ? (
                         displayedTasks.map((task) => <TaskCard key={task.id} item={task} />)
                     ) : (
@@ -250,11 +252,6 @@ const styles = StyleSheet.create({
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
     statusBadge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
     statusText: { fontSize: 12, fontWeight: '700' },
-    fab: {
-        position: 'absolute', bottom: 30, right: 25, backgroundColor: '#2F80ED',
-        width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center',
-        elevation: 5, shadowColor: '#2F80ED', shadowOpacity: 0.4, shadowRadius: 10
-    },
     emptyContainer: { alignItems: 'center', marginTop: 100 },
     emptyText: { marginTop: 10, color: '#94A3B8', fontSize: 16, fontWeight: '500' }
 });

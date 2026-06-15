@@ -2,6 +2,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
+import ScreenContainer from '../components/ScreenContainer';
 
 export default function LogoutConfirm() {
     const confirmLogout = async () => {
@@ -10,7 +11,7 @@ export default function LogoutConfirm() {
     };
 
     return (
-        <View style={styles.container}>
+        <ScreenContainer style={styles.container}>
             <View style={styles.card}>
                 <Text style={styles.text}>
                     Are you sure you want to log out?
@@ -32,7 +33,7 @@ export default function LogoutConfirm() {
                     </TouchableOpacity>
                 </View>
             </View>
-        </View>
+        </ScreenContainer>
     );
 }
 

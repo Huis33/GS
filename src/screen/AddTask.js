@@ -11,7 +11,7 @@ import {
     KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar,
     StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/ScreenContainer';
 import { auth, db } from '../../firebaseConfig';
 import { useUser } from '../context/UserContext';
 
@@ -342,7 +342,7 @@ export default function NewTaskScreen() {
     }, [navigation]);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer style={styles.container}>
             <StatusBar barStyle="dark-content" />
 
             {/* Header */}
@@ -608,7 +608,7 @@ export default function NewTaskScreen() {
                     </View>
                 </Modal>
             )}
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 

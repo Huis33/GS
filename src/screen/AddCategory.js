@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useNavigation } from 'expo-router';
 import { addPriorityCategory } from '../service/priorityService';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/ScreenContainer';
 
 export default function AddCategoryScreen() {
     const router = useRouter();
@@ -84,7 +84,7 @@ export default function AddCategoryScreen() {
     }, [categoryName, description, priority]);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <Ionicons name="arrow-back" size={28} color="black" />
@@ -160,7 +160,7 @@ export default function AddCategoryScreen() {
                     </TouchableOpacity>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 

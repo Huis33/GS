@@ -280,7 +280,7 @@ export default function TasksPage() {
                     </TouchableOpacity>
                 ))}
             </View>
-            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+            <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: 32 }]} keyboardShouldPersistTaps="handled">
                 {(() => {
                     // 1. Filter the tasks based on the active tab
                     let filteredTasks = taskList.filter(t =>

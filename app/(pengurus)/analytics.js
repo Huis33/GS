@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { PieChart } from "react-native-chart-kit";
 import { listenToAnalytics } from '../../src/service/AnalyticsService';
 import { COLORS } from '../../constants/theme';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/ScreenContainer';
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -77,7 +77,7 @@ export default function AnalyticsScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.safeArea}>
+        <ScreenContainer style={styles.safeArea}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -162,7 +162,7 @@ export default function AnalyticsScreen() {
                 </View>
 
             </ScrollView>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 

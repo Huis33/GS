@@ -15,6 +15,7 @@ import {
 //import { auth } from '../../firebaseConfig';
 //import { sendPasswordResetEmail } from 'firebase/auth';
 import { resetPassword } from '../../src/service/AuthService';
+import ScreenContainer from '../../components/ScreenContainer';
 
 export default function ForgetPasswordScreen() {
     const [email, setEmail] = useState('');
@@ -53,15 +54,18 @@ export default function ForgetPasswordScreen() {
     };
 
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
-        >
-            <View style={styles.inner}>
-                {/* Back Button */}
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
-                </TouchableOpacity>
+        <ScreenContainer style={styles.container}>
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+            >
+                <View style={styles.inner}>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={styles.backButton}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#333" />
+                    </TouchableOpacity>
 
                 <View style={styles.header}>
                     <Text style={styles.title}>Reset Password</Text>
@@ -94,8 +98,9 @@ export default function ForgetPasswordScreen() {
                         <Text style={styles.buttonText}>Send Reset Link</Text>
                     )}
                 </TouchableOpacity>
-            </View>
-        </KeyboardAvoidingView>
+                </View>
+            </KeyboardAvoidingView>
+        </ScreenContainer>
     );
 }
 
@@ -104,9 +109,10 @@ const styles = StyleSheet.create({
     inner: { padding: 25, flex: 1, justifyContent: 'center' },
     backButton: {
         position: 'absolute',
-        top: Platform.OS === 'ios' ? 60 : 40,
+        top: 8,
         left: 20,
-        padding: 10
+        padding: 10,
+        zIndex: 1,
     },
     header: { marginBottom: 40 },
     title: { fontSize: 28, fontWeight: 'bold', color: '#333', marginBottom: 10 },

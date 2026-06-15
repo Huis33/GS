@@ -7,7 +7,7 @@ import {
     Alert, Platform, ActivityIndicator, ScrollView, StatusBar,
     StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/ScreenContainer';
 import * as Print from 'expo-print';
 
 // 1. IMPORT CENTRALIZED UTILITIES & THEME
@@ -129,7 +129,7 @@ export default function TaskDetailsScreen() {
     const priorityStyle = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG['Medium'];
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer style={styles.container}>
             <StatusBar barStyle="dark-content" />
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
@@ -210,7 +210,7 @@ export default function TaskDetailsScreen() {
                     </TouchableOpacity>
                 )}
             </ScrollView>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 

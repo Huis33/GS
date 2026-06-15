@@ -1,43 +1,12 @@
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Drawer } from 'expo-router/drawer';
-import { DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { useNavigation, router } from 'expo-router';
 import { DrawerActions } from '@react-navigation/native';
 import { useUser } from '../../src/context/UserContext';
-import { SafeAreaView } from 'react-native-safe-area-context';
-
-function CustomDrawerContent(props) {
-    const { userData } = useUser();
-
-    const handleLogout = () => {
-        props.navigation.closeDrawer();
-        router.push('/logout-confirm');
-    };
-
-    return (
-        <DrawerContentScrollView {...props} contentContainerStyle={{ flexGrow: 1 }}>
-            <View style={styles.drawerHeader}>
-                <Ionicons name="person-circle" size={60} color="#6389DA" />
-                <Text style={styles.userName}>{userData?.name || 'User'}</Text>
-                <Text style={styles.userRole}>{userData?.role || 'Operation Manager'}</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-                <DrawerItemList {...props} />
-            </View>
-            <View style={styles.logoutSection}>
-                <DrawerItem
-                    label="Log Out"
-                    onPress={handleLogout}
-                    icon={({ size }) => <Ionicons name="log-out-outline" color="#FF4444" size={size} />}
-                    labelStyle={{ color: '#FF4444', fontWeight: 'bold' }}
-                />
-            </View>
-        </DrawerContentScrollView>
-    );
-}
+import CustomDrawerContent, { DRAWER_SCREEN_OPTIONS } from '../../components/CustomDrawerContent';
 
 export default function OMDrawerLayout() {
     const { userData } = useUser();
@@ -47,6 +16,7 @@ export default function OMDrawerLayout() {
             <Drawer
                 drawerContent={(props) => <CustomDrawerContent {...props} />}
                 screenOptions={({ navigation }) => ({
+                    ...DRAWER_SCREEN_OPTIONS,
                     headerShown: true,
                     headerTitleAlign: 'center',
                     headerShadowVisible: false,
@@ -59,62 +29,53 @@ export default function OMDrawerLayout() {
                             <Ionicons name="menu-outline" size={30} color="black" />
                         </TouchableOpacity>
                     ),
-                    // Adding the headerRight here
                     headerRight: () => (
                         <TouchableOpacity
-                            style={{ marginRight: 20}}
-                            onPress={() => {
-                                router.push('/analytics');
-                            }}
+                            style={{ marginRight: 20 }}
+                            onPress={() => router.push('/analytics')}
                         >
                             <Ionicons name="stats-chart-outline" size={24} color="black" />
                         </TouchableOpacity>
                     ),
-                    
                     headerTitle: () => (
                         <Text style={styles.headerWelcome}>
                             Welcome, {userData?.name || 'User'}
                         </Text>
                     ),
-                    drawerActiveTintColor: '#6389DA',
                 })}
             >
-                {/* HIDE THE TABS FROM DRAWER MENU */}
                 <Drawer.Screen
                     name="(tabs)"
                     options={{
                         drawerLabel: 'Home',
-                        drawerIcon: ({ color, size }) => <Ionicons name="home-sharp" color={color} size={size} />
+                        drawerIcon: ({ color, size }) => <Ionicons name="home-sharp" color={color} size={size} />,
                     }}
                 />
                 <Drawer.Screen
                     name="read-only-Profile"
                     options={{
                         drawerLabel: 'Profile',
-                        drawerIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} />
+                        drawerIcon: ({ color, size }) => <Ionicons name="person-circle-outline" color={color} size={size} />,
                     }}
                 />
                 <Drawer.Screen
                     name="task"
                     options={{
-                        drawerLabel: 'All Task',
-                        drawerIcon: ({ color, size }) => <Ionicons name="list" color={color} size={size} />
+                        drawerLabel: 'All Tasks',
+                        drawerIcon: ({ color, size }) => <Ionicons name="list" color={color} size={size} />,
                     }}
                 />
                 <Drawer.Screen
                     name="profile"
                     options={{
-                        drawerLabel: 'Profile',
+                        drawerLabel: 'Edit Profile',
                         headerTitle: 'User Profile',
-                        drawerIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />
+                        drawerIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />,
                     }}
                 />
                 <Drawer.Screen
                     name="analytics"
-                    options={{
-                        headerShown: false,
-                        drawerItemStyle: { display: 'none' } // This hides it from the sidebar list
-                    }}
+                    options={{ headerShown: false, drawerItemStyle: { display: 'none' } }}
                 />
             </Drawer>
         </GestureHandlerRootView>
@@ -122,22 +83,6 @@ export default function OMDrawerLayout() {
 }
 
 const styles = StyleSheet.create({
-    drawerHeader: {
-        paddingVertical: 30,
-        paddingHorizontal: 20,
-        backgroundColor: '#F8F9FA',
-        alignItems: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: '#EEE',
-        marginBottom: 10,
-    },
-    userName: { fontSize: 18, fontWeight: 'bold', marginTop: 10 },
-    userRole: { fontSize: 14, color: '#666' },
-    logoutSection: {
-        borderTopWidth: 1,
-        borderTopColor: '#EEE',
-        marginBottom: 20,
-    },
     headerWelcome: {
         fontSize: 22,
         fontWeight: '700',

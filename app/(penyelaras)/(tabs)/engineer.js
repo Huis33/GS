@@ -6,7 +6,6 @@ import {
     TextInput,
     TouchableOpacity,
     FlatList,
-    SafeAreaView,
     ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -75,13 +74,14 @@ export default function EngineerListScreen() {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={[styles.container, { paddingTop: 10 }]}>
             {/* Search Bar */}
             <View style={styles.searchContainer}>
                 <View style={styles.searchBar}>
                     <TextInput
                         placeholder="Search for..."
-                        style={styles.searchInput}
+                        placeholderTextColor="#888888" // 🚀 FIX: Visible grey placeholder
+                        style={[styles.searchInput, { color: '#000' }]} // 🚀 FIX: Black typed text
                         value={searchQuery}
                         onChangeText={setSearchQuery}
                     />
@@ -114,14 +114,15 @@ export default function EngineerListScreen() {
                     data={filteredEngineers}
                     keyExtractor={(item) => item.id}
                     renderItem={renderEngineerItem}
-                    contentContainerStyle={styles.listContent}
+                    // 🚀 FIX: Dynamic padding bottom to lift items over the navigation bar
+                    contentContainerStyle={[styles.listContent, { paddingBottom: 32 }]}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <Text style={styles.emptyText}>No engineers found in this category.</Text>
                     }
                 />
             )}
-        </SafeAreaView>
+        </View>
     );
 }
 

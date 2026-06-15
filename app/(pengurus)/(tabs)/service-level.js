@@ -5,7 +5,6 @@ import {
     StyleSheet,
     SectionList,
     TouchableOpacity,
-    SafeAreaView,
     ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,8 +13,6 @@ import { db } from '../../../firebaseConfig';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 
 export default function ServiceLevelScreen() {
-    // Fake Data structured for SectionList
-    // This can be easily replaced by Firebase data mapped into this format
     const router = useRouter();
     const [sections, setSections] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -109,7 +106,7 @@ export default function ServiceLevelScreen() {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <View style={styles.content}>
                 <Text style={styles.totalText}>Total {totalCategories} Categories</Text>
 
@@ -120,16 +117,17 @@ export default function ServiceLevelScreen() {
                     renderSectionHeader={renderHeader}
                     stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
+                    contentContainerStyle={{ paddingBottom: 88 }}
                     ListEmptyComponent={<Text style={styles.emptyText}>No categories found.</Text>}
                 />
             </View>
 
             <TouchableOpacity
-                style={styles.fab}
+                style={[styles.fab, { bottom: 20 }]}
                 onPress={() => router.push('/add-category')}>
                 <Ionicons name="add" size={30} color="white" />
             </TouchableOpacity>
-        </SafeAreaView>
+        </View>
     );
 }
 

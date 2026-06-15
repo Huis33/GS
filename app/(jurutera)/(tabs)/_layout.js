@@ -1,22 +1,21 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTabBarStyle } from '../../../hooks/useTabBarStyle';
 
 export default function TabLayout() {
+    const tabBarStyle = useTabBarStyle();
+
     return (
         <Tabs
             screenOptions={{
-                headerShown: false,           // Hide the tab header (Drawer handles this)
-                tabBarActiveTintColor: '#6389DA', // Your signature blue color
+                headerShown: false,
+                tabBarActiveTintColor: '#6389DA',
                 tabBarInactiveTintColor: 'gray',
-                tabBarStyle: {
-                    height: 60,                // Give it some height
-                    paddingBottom: 10,
-                },
+                tabBarStyle,
             }}
         >
-            {/* LEFT TAB: Schedule */}
             <Tabs.Screen
-                name="index" // This points to app/(jurutera)/(tabs)/index.js
+                name="index"
                 options={{
                     title: 'Schedule',
                     tabBarIcon: ({ color, size }) => (
@@ -25,9 +24,8 @@ export default function TabLayout() {
                 }}
             />
 
-            {/* RIGHT TAB: Tasks */}
             <Tabs.Screen
-                name="tasks" // This points to app/(jurutera)/(tabs)/tasks.js
+                name="tasks"
                 options={{
                     title: 'Tasks',
                     tabBarIcon: ({ color, size }) => (

@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from "../../firebaseConfig";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/ScreenContainer';
 
 export default function EngineerDetails() {
     const { name } = useLocalSearchParams();
@@ -55,7 +55,7 @@ export default function EngineerDetails() {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()}>
@@ -121,7 +121,7 @@ export default function EngineerDetails() {
                     <Text style={styles.emptyText}>No tasks found for this engineer.</Text>
                 )}
             </ScrollView>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 

@@ -15,7 +15,7 @@ import {
     View,
     ScrollView // 🚀 IMPORT SCROLLVIEW
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/ScreenContainer';
 import { useUser } from '../context/UserContext';
 import { loginUser } from '../service/AuthService';
 
@@ -56,7 +56,7 @@ export default function LoginScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer style={styles.container}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
                 style={{ flex: 1 }}
@@ -134,7 +134,7 @@ export default function LoginScreen() {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 

@@ -10,7 +10,7 @@ import {
     Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/ScreenContainer';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from '../../firebaseConfig';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -85,14 +85,14 @@ export default function ReadOnlyCoordProfile() {
 
     if (loading) {
         return (
-            <SafeAreaView style={styles.loadingContainer}>
+            <ScreenContainer style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#000" />
-            </SafeAreaView>
+            </ScreenContainer>
         );
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer style={styles.container}>
             {/* Top Navigation */}
             <View style={styles.topNav}>
                 <TouchableOpacity
@@ -228,7 +228,7 @@ export default function ReadOnlyCoordProfile() {
                     </>
                 )}
             </ScrollView>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 

@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { db } from "../../firebaseConfig";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { SafeAreaView } from 'react-native-safe-area-context';
+import ScreenContainer from '../../components/ScreenContainer';
 
 export default function CoordinatorDetails() {
     const { name } = useLocalSearchParams();
@@ -50,7 +50,7 @@ export default function CoordinatorDetails() {
     if (loading) return <ActivityIndicator style={{ flex: 1 }} size="large" color="#6389DA" />;
 
     return (
-        <SafeAreaView style={styles.container}>
+        <ScreenContainer style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()}>
                     <Ionicons name="arrow-back" size={24} color="black" />
@@ -106,7 +106,7 @@ export default function CoordinatorDetails() {
                     <Text style={styles.emptyText}>No tasks found for this coordinator.</Text>
                 )}
             </ScrollView>
-        </SafeAreaView>
+        </ScreenContainer>
     );
 }
 
