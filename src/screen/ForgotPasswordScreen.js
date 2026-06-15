@@ -73,13 +73,13 @@ export default function ForgetPasswordScreen() {
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Email Address</Text>
                     <TextInput
-                        style={styles.input}
-                        placeholder="yourname@example.com"
+                        style={[styles.input, { color: '#000' }]} // 🚀 Force typed text to be black
                         value={email}
                         onChangeText={setEmail}
-                        keyboardType="email-address"
+                        placeholder="Enter your email"
+                        placeholderTextColor="#888888" // 🚀 Visible grey placeholder
                         autoCapitalize="none"
-                        autoCorrect={false}
+                        keyboardType="email-address"
                     />
                 </View>
 

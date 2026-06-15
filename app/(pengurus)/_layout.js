@@ -18,7 +18,7 @@ function CustomDrawerContent(props) {
     };
 
     return (
-        <DrawerContentScrollView {...props} contentContainerStyle={{ flex: 1 }}>
+        <DrawerContentScrollView {...props} contentContainerStyle={{ flexGrow: 1 }}>
             <View style={styles.drawerHeader}>
                 <Ionicons name="person-circle" size={60} color="#6389DA" />
                 <Text style={styles.userName}>{userData?.name || 'User'}</Text>
@@ -43,8 +43,7 @@ export default function OMDrawerLayout() {
     const { userData } = useUser();
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFF' }} edges={['bottom', 'left', 'right']}>
-            <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
                 drawerContent={(props) => <CustomDrawerContent {...props} />}
                 screenOptions={({ navigation }) => ({
@@ -119,13 +118,13 @@ export default function OMDrawerLayout() {
                 />
             </Drawer>
         </GestureHandlerRootView>
-        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     drawerHeader: {
-        padding: 20,
+        paddingVertical: 30,
+        paddingHorizontal: 20,
         backgroundColor: '#F8F9FA',
         alignItems: 'center',
         borderBottomWidth: 1,
@@ -143,7 +142,6 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: '700',
         color: '#000',
-        // Ensures the font looks clean on both iOS and Android
         fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif-medium',
     },
 });

@@ -19,20 +19,18 @@ function CustomDrawerContent(props) {
     };
 
     return (
-        <DrawerContentScrollView {...props} contentContainerStyle={{ flex: 1 }}>
-            {/* 1. Profile Header Section */}
+        // 🚀 FIX: Changed flex: 1 to flexGrow: 1 to prevent weird stretching
+        <DrawerContentScrollView {...props} contentContainerStyle={{ flexGrow: 1 }}>
             <View style={styles.drawerHeader}>
                 <Ionicons name="person-circle" size={60} color="#6389DA" />
                 <Text style={styles.userName}>{userData?.name || 'User'}</Text>
                 <Text style={styles.userRole}>{userData?.role || 'Engineer'}</Text>
             </View>
 
-            {/* 2. Main Navigation Items */}
             <View style={{ flex: 1 }}>
                 <DrawerItemList {...props} />
             </View>
 
-            {/* 3. Bottom Logout Section */}
             <View style={styles.logoutSection}>
                 <DrawerItem
                     label="Log Out"
@@ -49,8 +47,8 @@ export default function JuruteraDrawerLayout() {
     const { userData } = useUser();
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFF' }} edges={['bottom', 'left', 'right']}>
-            <GestureHandlerRootView style={{ flex: 1 }}>
+        // 🚀 FIX: Removed the SafeAreaView wrapper so the sidebar reaches the true edges
+        <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
                 drawerContent={(props) => <CustomDrawerContent {...props} />}
                 screenOptions={({ navigation }) => ({
@@ -58,7 +56,6 @@ export default function JuruteraDrawerLayout() {
                     headerTitleAlign: 'center',
                     headerShadowVisible: false,
                     headerStyle: { backgroundColor: '#FFFFFF' },
-                    // Default Header Left is the Menu Button
                     headerLeft: () => (
                         <TouchableOpacity
                             style={{ marginLeft: 20 }}
@@ -76,15 +73,8 @@ export default function JuruteraDrawerLayout() {
                     drawerActiveTintColor: '#6389DA',
                 })}
             >
-                {/* HIDE THE TABS FROM DRAWER MENU */}
-                <Drawer.Screen
-                    name="(tabs)"
-                    options={{
-                        drawerItemStyle: { display: 'none' },
-                    }}
-                />
+                <Drawer.Screen name="(tabs)" options={{ drawerItemStyle: { display: 'none' } }} />
 
-                {/* SHOW EDIT PROFILE (Update Availability) */}
                 <Drawer.Screen
                     name="edit-profile"
                     options={({ navigation }) => ({
@@ -92,27 +82,20 @@ export default function JuruteraDrawerLayout() {
                         headerTitle: 'Profile',
                         drawerIcon: ({ color, size }) => <Ionicons name="brush" color={color} size={size} />,
                         headerLeft: () => (
-                            <TouchableOpacity
-                                style={{ marginLeft: 20 }}
-                                onPress={() => router.replace('/(jurutera)/(tabs)')}
-                            >
+                            <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => router.replace('/(jurutera)/(tabs)')}>
                                 <Ionicons name="arrow-back" size={28} color="black" />
                             </TouchableOpacity>
                         ),
                     })}
                 />
 
-                {/* NOTIFICATIONS PAGE (Hidden from menu, has custom back button) */}
                 <Drawer.Screen
                     name="notifications"
                     options={{
                         title: 'Notifications',
-                        drawerItemStyle: { display: 'none' }, // 🚀 This hides it from the Sidebar!
-                        headerLeft: () => ( // 🚀 This adds the back button to the top left!
-                            <TouchableOpacity
-                                style={{ marginLeft: 20 }}
-                                onPress={() => router.back()}
-                            >
+                        drawerItemStyle: { display: 'none' },
+                        headerLeft: () => (
+                            <TouchableOpacity style={{ marginLeft: 20 }} onPress={() => router.back()}>
                                 <Ionicons name="arrow-back" size={28} color="black" />
                             </TouchableOpacity>
                         )
@@ -120,7 +103,6 @@ export default function JuruteraDrawerLayout() {
                 />
             </Drawer>
         </GestureHandlerRootView>
-        </SafeAreaView>
     );
 }
 

@@ -363,11 +363,11 @@ export default function NewTaskScreen() {
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Task Name</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { color: '#000' }]}
+                                placeholder="Enter task name"
+                                placeholderTextColor="#888888"
                                 value={taskName}
                                 onChangeText={setTaskName}
-                                placeholder="e.g. System Maintenance"
-                                placeholderTextColor="#AAA"
                             />
                         </View>
 
@@ -377,12 +377,13 @@ export default function NewTaskScreen() {
                                 <Text style={styles.charCount}>{description.length}/500</Text>
                             </View>
                             <TextInput
-                                style={[styles.input, styles.textArea]}
-                                placeholder="Provide context or instructions..."
-                                placeholderTextColor="#AAA"
+                                style={[styles.input, styles.textArea, { color: '#000' }]}
+                                placeholder="Enter task description"
+                                placeholderTextColor="#888888"
+                                value={taskDescription}
+                                onChangeText={setTaskDescription}
                                 multiline
-                                value={description}
-                                onChangeText={(t) => t.length <= 500 && setDescription(t)}
+                                numberOfLines={4}
                             />
                         </View>
                     </View>

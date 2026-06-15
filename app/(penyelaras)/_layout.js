@@ -19,7 +19,7 @@ function CustomDrawerContent(props) {
     };
 
     return (
-        <DrawerContentScrollView {...props} contentContainerStyle={{ flex: 1 }}>
+        <DrawerContentScrollView {...props} contentContainerStyle={{ flexGrow: 1 }}>
             {/* 1. Profile Header Section */}
             <View style={styles.drawerHeader}>
                 <Ionicons name="person-circle" size={60} color="#6389DA" />
@@ -49,8 +49,7 @@ export default function PenyelarasDrawerLayout() {
     const { userData } = useUser();
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFF' }} edges={['bottom', 'left', 'right']}>
-            <GestureHandlerRootView style={{ flex: 1 }}>
+        <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
                 drawerContent={(props) => <CustomDrawerContent {...props} />}
                 screenOptions={({ navigation }) => ({
@@ -121,7 +120,6 @@ export default function PenyelarasDrawerLayout() {
 
             </Drawer>
         </GestureHandlerRootView>
-        </SafeAreaView>
     );
 }
 

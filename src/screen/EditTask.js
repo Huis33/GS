@@ -269,9 +269,11 @@ export default function EditTaskScreen() {
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Task Name</Text>
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, { color: '#000' }]}
+                                placeholder="Task Name"
+                                placeholderTextColor="#888888"
                                 value={taskName}
-                                onChangeText={(t) => { setTaskName(t); isDirtyRef.current = true; }}
+                                onChangeText={setTaskName}
                             />
                         </View>
                         <View style={[styles.inputGroup, { marginBottom: 0 }]}>
@@ -280,10 +282,13 @@ export default function EditTaskScreen() {
                                 <Text style={styles.charCount}>{description.length}/500</Text>
                             </View>
                             <TextInput
-                                style={[styles.input, styles.textArea]}
+                                style={[styles.input, styles.textArea, { color: '#000' }]}
+                                placeholder="Task Description"
+                                placeholderTextColor="#888888"
+                                value={taskDescription}
+                                onChangeText={setTaskDescription}
                                 multiline
-                                value={description}
-                                onChangeText={(t) => { setDescription(t); isDirtyRef.current = true; }}
+                                numberOfLines={4}
                             />
                         </View>
                     </View>

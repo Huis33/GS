@@ -100,11 +100,11 @@ export default function AddCategoryScreen() {
                         <Text style={styles.label}>Category Name</Text>
                         <View style={styles.inputWrapper}>
                             <TextInput
-                                style={styles.input}
-                                placeholder="Enter category name"
+                                style={[styles.input, { color: '#000' }]}
+                                placeholder="Enter Category Name"
+                                placeholderTextColor="#888888"
                                 value={categoryName}
                                 onChangeText={setCategoryName}
-                                maxLength={50}
                             />
                         </View>
                         <Text style={styles.charCount}>{categoryName.length}/50</Text>
@@ -112,13 +112,13 @@ export default function AddCategoryScreen() {
                         <Text style={styles.label}>Description</Text>
                         <View style={[styles.inputWrapper, styles.textAreaWrapper]}>
                             <TextInput
-                                style={[styles.input, styles.textArea]}
-                                placeholder="Enter description"
-                                value={description}
-                                onChangeText={setDescription}
+                                style={[styles.input, styles.textArea, { color: '#000' }]}
+                                placeholder="Enter Description (Optional)"
+                                placeholderTextColor="#888888"
+                                value={categoryDescription}
+                                onChangeText={setCategoryDescription}
                                 multiline
-                                maxLength={500}
-                                textAlignVertical="top"
+                                numberOfLines={4}
                             />
                         </View>
                         <Text style={styles.charCount}>{description.length}/500</Text>
