@@ -7,6 +7,7 @@ import React from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUser } from '../../src/context/UserContext';
+import HeaderRight from '../../components/HeaderRight';
 
 function CustomDrawerContent(props) {
     const { userData } = useUser();
@@ -68,6 +69,7 @@ export default function PenyelarasDrawerLayout() {
                             Welcome, {userData?.name || 'User'}
                         </Text>
                     ),
+                    headerRight: () => <HeaderRight />,
                     drawerActiveTintColor: '#6389DA',
                 })}
             >
@@ -96,6 +98,23 @@ export default function PenyelarasDrawerLayout() {
                             </TouchableOpacity>
                         ),
                     })}
+                />
+
+                {/* NOTIFICATIONS PAGE (Hidden from menu, has custom back button) */}
+                <Drawer.Screen
+                    name="notifications"
+                    options={{
+                        title: 'Notifications',
+                        drawerItemStyle: { display: 'none' },
+                        headerLeft: () => (
+                            <TouchableOpacity
+                                style={{ marginLeft: 20 }}
+                                onPress={() => router.back()}
+                            >
+                                <Ionicons name="arrow-back" size={28} color="black" />
+                            </TouchableOpacity>
+                        ),
+                    }}
                 />
 
             </Drawer>

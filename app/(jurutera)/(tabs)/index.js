@@ -1,10 +1,10 @@
+// app/(jurutera)/(tabs)/index.js
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { db, auth } from "../../../firebaseConfig";
 import { collection, onSnapshot, query, where, orderBy } from "firebase/firestore";
-// 🛠️ IMPORTED: Added Tabs from expo-router to handle header overriding
-import { useRouter, Tabs } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AssignedSchedulePage() {
@@ -15,10 +15,6 @@ export default function AssignedSchedulePage() {
     const [selectedDate, setSelectedDate] = useState(today);
     const [taskList, setTaskList] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    // In-App Notification States
-    const [isNotifVisible, setIsNotifVisible] = useState(false);
-    const [hasShownPopupOnLogin, setHasShownPopupOnLogin] = useState(false);
 
     // 1. Fetch Assigned Tasks Stream
     useEffect(() => {
@@ -62,52 +58,7 @@ export default function AssignedSchedulePage() {
         return () => unsubscribe();
     }, []);
 
-    // 2. Real-time Live Notification Calculations
-    const notifications = useMemo(() => {
-        const list = [];
-        const now = new Date();
-
-        taskList.forEach(task => {
-            if (task.status === 'Done' || !task.dueDate) return;
-
-            let deadline;
-            if (task.dueDate && typeof task.dueDate.toDate === 'function') {
-                deadline = task.dueDate.toDate();
-            } else {
-                deadline = new Date(task.dueDate);
-            }
-
-            if (now > deadline) {
-                list.push({
-                    id: `overdue-${task.id}`,
-                    title: 'Task Overdue ⚠️',
-                    body: `"${task.name || 'Untitled Task'}" is past its deadline!`,
-                    type: 'overdue'
-                });
-            } else {
-                const hoursLeft = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
-                if (hoursLeft <= 24 && hoursLeft > 0) {
-                    list.push({
-                        id: `soon-${task.id}`,
-                        title: 'Task Due Soon ⏰',
-                        body: `"${task.name || 'Untitled Task'}" is due within 24 hours.`,
-                        type: 'due_soon'
-                    });
-                }
-            }
-        });
-        return list;
-    }, [taskList]);
-
-    // 3. Trigger Pop-up Alert Automatically on Login Entry
-    useEffect(() => {
-        if (!loading && notifications.length > 0 && !hasShownPopupOnLogin) {
-            setIsNotifVisible(true);
-            setHasShownPopupOnLogin(true);
-        }
-    }, [loading, notifications, hasShownPopupOnLogin]);
-
-    // 4. Generate Calendar Markers
+    // 2. Generate Calendar Markers
     const markedDates = useMemo(() => {
         const marks = {};
         taskList.forEach(task => {
@@ -217,51 +168,6 @@ export default function AssignedSchedulePage() {
                     )}
                 </View>
             </ScrollView>
-
-            {/* In-App Alerts Dialog Panel Modal */}
-            <Modal
-                visible={isNotifVisible}
-                animationType="fade"
-                transparent={true}
-                onRequestClose={() => setIsNotifVisible(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalCard}>
-                        <View style={styles.modalHeader}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                <Ionicons name="notifications" size={22} color="#6389DA" style={{ marginRight: 8 }} />
-                                <Text style={styles.modalTitle}>Alerts Center</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => setIsNotifVisible(false)}>
-                                <Ionicons name="close" size={24} color="#666" />
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView style={{ maxHeight: 350 }} showsVerticalScrollIndicator={false}>
-                            {notifications.length > 0 ? (
-                                notifications.map(notif => (
-                                    <View key={notif.id} style={[
-                                        styles.notifAlertItem,
-                                        notif.type === 'overdue' ? styles.borderOverdue : styles.borderSoon
-                                    ]}>
-                                        <Text style={styles.notifAlertTitle}>{notif.title}</Text>
-                                        <Text style={styles.notifAlertBody}>{notif.body}</Text>
-                                    </View>
-                                ))
-                            ) : (
-                                <View style={{ alignItems: 'center', paddingVertical: 30 }}>
-                                    <Ionicons name="checkmark-circle-outline" size={44} color="#27AE60" />
-                                    <Text style={styles.noNotifText}>You are all caught up! No active alerts.</Text>
-                                </View>
-                            )}
-                        </ScrollView>
-
-                        <TouchableOpacity style={styles.modalCloseButton} onPress={() => setIsNotifVisible(false)}>
-                            <Text style={styles.modalCloseButtonText}>Acknowledge</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </Modal>
         </View>
     );
 }
@@ -271,25 +177,20 @@ const styles = StyleSheet.create({
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' },
     scrollContent: { paddingBottom: 40 },
 
-    // Header Placements
-    notifHeaderButton: { marginRight: 24, position: 'relative', padding: 4 },
-    badgeOverlay: { position: 'absolute', top: 0, right: 0, backgroundColor: '#E74C3C', width: 18, height: 18, borderRadius: 9, justifyContent: 'center', alignItems: 'center' },
-    badgeText: { color: '#FFF', fontSize: 10, fontWeight: 'bold' },
-
     calendarWrapper: {
         marginHorizontal: 20,
         backgroundColor: '#FFF',
         borderRadius: 20,
         overflow: 'hidden',
         elevation: 4,
-        marginBottom: 30, // Increased from 25
+        marginBottom: 30,
         marginTop: 10
     },
     calendarInner: { paddingBottom: 10 },
     sectionHeader: {
         paddingHorizontal: 25,
         marginBottom: 15,
-        marginTop: 10 // 🚀 Adds clear air between Calendar and Heading
+        marginTop: 10
     },
     sectionTitle: { fontSize: 22, fontWeight: '800', color: '#1A1A1A' },
     taskListContainer: { flex: 1 },
@@ -303,19 +204,5 @@ const styles = StyleSheet.create({
     progressBar: { height: 8, backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: 4, overflow: 'hidden' },
     progressFill: { height: '100%', backgroundColor: '#10B981', borderRadius: 4 },
     emptyContainer: { marginTop: 20, padding: 40, alignItems: 'center', justifyContent: 'center' },
-    emptyText: { color: '#AAA', fontSize: 15, marginTop: 10, fontWeight: '500', textAlign: 'center' },
-
-    // Modal Overlay Styling
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-    modalCard: { backgroundColor: '#FFF', width: '100%', borderRadius: 24, padding: 22, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10 },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 12, marginBottom: 15 },
-    modalTitle: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },
-    notifAlertItem: { backgroundColor: '#F8FAFF', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: '#EBF0FF' },
-    borderOverdue: { borderLeftWidth: 5, borderLeftColor: '#E74C3C' },
-    borderSoon: { borderLeftWidth: 5, borderLeftColor: '#F39C12' },
-    notifAlertTitle: { fontSize: 15, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 3 },
-    notifAlertBody: { fontSize: 13, color: '#555', lineHeight: 18 },
-    noNotifText: { color: '#64748B', fontSize: 14, marginTop: 10, fontWeight: '500' },
-    modalCloseButton: { backgroundColor: '#6389DA', borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 15 },
-    modalCloseButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' }
+    emptyText: { color: '#AAA', fontSize: 15, marginTop: 10, fontWeight: '500', textAlign: 'center' }
 });

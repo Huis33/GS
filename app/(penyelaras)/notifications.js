@@ -1,4 +1,4 @@
-// app/(jurutera)/notifications.js
+// app/(penyelaras)/notifications.js
 import React, { useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,11 +6,10 @@ import { useAlerts } from '../../src/context/AlertsContext';
 import { getAlertBorderStyle } from '../../src/utils/alertStyles';
 
 export default function NotificationsPage() {
-    // This pulls directly from the newly fixed Context
     const { alerts, markAllRead } = useAlerts();
 
     useEffect(() => {
-        markAllRead(); // Resets the red badge count without hiding tasks
+        markAllRead();
     }, []);
 
     return (

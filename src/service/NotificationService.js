@@ -128,3 +128,27 @@ export async function sendPushNotification(taskName, status) {
         trigger: { seconds: 1 },
     });
 }
+
+export async function sendNewTaskNotification(taskName, creatorName) {
+    const Notifications = getNotifications();
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title: 'New Task Assigned 📋',
+            body: `"${taskName}" was assigned to you by ${creatorName}.`,
+            data: { type: 'new_task' },
+        },
+        trigger: { seconds: 1 },
+    });
+}
+
+export async function sendTaskUpdatedNotification(taskName) {
+    const Notifications = getNotifications();
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title: 'Task Updated ✏️',
+            body: `"${taskName}" was updated by your coordinator.`,
+            data: { type: 'task_updated' },
+        },
+        trigger: { seconds: 1 },
+    });
+}

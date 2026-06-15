@@ -8,7 +8,6 @@ import React from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUser } from '../../src/context/UserContext';
-import { useAlerts } from '../../src/context/AlertsContext';
 import HeaderRight from '../../components/HeaderRight';
 
 function CustomDrawerContent(props) {
@@ -57,6 +56,7 @@ export default function JuruteraDrawerLayout() {
                     headerTitleAlign: 'center',
                     headerShadowVisible: false,
                     headerStyle: { backgroundColor: '#FFFFFF' },
+                    // Default Header Left is the Menu Button
                     headerLeft: () => (
                         <TouchableOpacity
                             style={{ marginLeft: 20 }}
@@ -82,7 +82,7 @@ export default function JuruteraDrawerLayout() {
                     }}
                 />
 
-                {/* SHOW EDIT PROFILE */}
+                {/* SHOW EDIT PROFILE (Update Availability) */}
                 <Drawer.Screen
                     name="edit-profile"
                     options={({ navigation }) => ({
@@ -100,7 +100,22 @@ export default function JuruteraDrawerLayout() {
                     })}
                 />
 
-                <Drawer.Screen name="notifications" options={{ title: 'Notifications' }} />
+                {/* NOTIFICATIONS PAGE (Hidden from menu, has custom back button) */}
+                <Drawer.Screen
+                    name="notifications"
+                    options={{
+                        title: 'Notifications',
+                        drawerItemStyle: { display: 'none' }, // 🚀 This hides it from the Sidebar!
+                        headerLeft: () => ( // 🚀 This adds the back button to the top left!
+                            <TouchableOpacity
+                                style={{ marginLeft: 20 }}
+                                onPress={() => router.back()}
+                            >
+                                <Ionicons name="arrow-back" size={28} color="black" />
+                            </TouchableOpacity>
+                        )
+                    }}
+                />
             </Drawer>
         </GestureHandlerRootView>
     );
