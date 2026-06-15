@@ -9,6 +9,7 @@ import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useUser } from '../../src/context/UserContext';
 import HeaderRight from '../../components/HeaderRight';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 function CustomDrawerContent(props) {
     const { userData } = useUser();
@@ -48,7 +49,8 @@ export default function JuruteraDrawerLayout() {
     const { userData } = useUser();
 
     return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFF' }} edges={['bottom', 'left', 'right']}>
+            <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
                 drawerContent={(props) => <CustomDrawerContent {...props} />}
                 screenOptions={({ navigation }) => ({
@@ -118,6 +120,7 @@ export default function JuruteraDrawerLayout() {
                 />
             </Drawer>
         </GestureHandlerRootView>
+        </SafeAreaView>
     );
 }
 

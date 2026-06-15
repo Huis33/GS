@@ -7,6 +7,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native
 import { useNavigation, router } from 'expo-router';
 import { DrawerActions } from '@react-navigation/native';
 import { useUser } from '../../src/context/UserContext';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 function CustomDrawerContent(props) {
     const { userData } = useUser();
@@ -42,7 +43,8 @@ export default function OMDrawerLayout() {
     const { userData } = useUser();
 
     return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFF' }} edges={['bottom', 'left', 'right']}>
+            <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
                 drawerContent={(props) => <CustomDrawerContent {...props} />}
                 screenOptions={({ navigation }) => ({
@@ -117,6 +119,7 @@ export default function OMDrawerLayout() {
                 />
             </Drawer>
         </GestureHandlerRootView>
+        </SafeAreaView>
     );
 }
 

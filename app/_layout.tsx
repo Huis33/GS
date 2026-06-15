@@ -7,6 +7,7 @@ import { AlertsProvider } from '../src/context/AlertsContext';
 import { configureNotifications, requestNotificationPermissions } from '../src/service/NotificationService';
 import NotificationModalWrapper from '../components/NotificationModalWrapper';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -59,14 +60,15 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <UserProvider>
-      {/* 🚀 Move the wrappers to the absolute top of the app tree */}
-      <AlertsProvider>
-        <NotificationModalWrapper>
-          <StatusBar style="dark" translucent={false} backgroundColor="#F8FAFF" />
-          <RootLayoutNav />
-        </NotificationModalWrapper>
-      </AlertsProvider>
-    </UserProvider>
+    <SafeAreaProvider>
+      <UserProvider>
+        <AlertsProvider>
+          <NotificationModalWrapper>
+            <StatusBar style="dark" translucent={false} backgroundColor="#F8FAFF" />
+            <RootLayoutNav />
+          </NotificationModalWrapper>
+        </AlertsProvider>
+      </UserProvider>
+    </SafeAreaProvider>
   );
 }

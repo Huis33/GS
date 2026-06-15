@@ -1,3 +1,4 @@
+// src/screen/LoginScreen.js
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -12,6 +13,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    ScrollView // 🚀 IMPORT SCROLLVIEW
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUser } from '../context/UserContext';
@@ -34,21 +36,13 @@ export default function LoginScreen() {
         console.log("--- Login Attempt Started ---");
 
         try {
-            // 1. Perform Auth and Fetch Firestore Data
             const result = await loginUser(email, password);
             console.log("Login successful! Data fetched for role:", result.role);
-
-            // 2. Update Global Context
-            // This will trigger the useEffect in app/_layout.tsx to handle the redirect
             setUserData(result);
-
-            // 3. Turn off local loading immediately
-            setLoading(false); 
-            console.log("Local loading state set to false.");
-
+            setLoading(false);
         } catch (error) {
             console.error("Login Screen Catch Error:", error);
-            
+
             let errorMessage = "Something went wrong. Please try again.";
             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
                 errorMessage = "Invalid email or password.";
@@ -57,7 +51,7 @@ export default function LoginScreen() {
             }
 
             Alert.alert("Login Failed", errorMessage);
-            setLoading(false); // Stop spinner on error
+            setLoading(false);
         }
     };
 
@@ -65,71 +59,80 @@ export default function LoginScreen() {
         <SafeAreaView style={styles.container}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
-                style={styles.content}
+                style={{ flex: 1 }}
             >
-                {/* Branding / Logo Section */}
-                <View style={styles.logoContainer}>
-                    <Image
-                        source={require('../../assets/images/logo.jpg')}
-                        style={styles.logo}
-                        resizeMode="contain"
-                    />
-                    <Text style={styles.welcomeText}>{'Welcome'}</Text>
-                </View>
-
-                {/* Input Fields */}
-                <View style={styles.form}>
-                    <View style={styles.inputWrapper}>
-                        <Text style={styles.label}>{'Email'}</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={email}
-                            onChangeText={setEmail}
-                            placeholder="Enter your email"
-                            autoCapitalize="none"
-                            keyboardType="email-address"
+                {/* 🚀 SCROLLVIEW ADDED HERE to ensure the screen is always scrollable */}
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                >
+                    {/* Branding / Logo Section */}
+                    <View style={styles.logoContainer}>
+                        <Image
+                            source={require('../../assets/images/logo.jpg')}
+                            style={styles.logo}
+                            resizeMode="contain"
                         />
+                        <Text style={styles.welcomeText}>{'Welcome'}</Text>
                     </View>
 
-                    <View style={styles.inputWrapper}>
-                        <Text style={styles.label}>{'Password'}</Text>
-                        <View style={styles.passwordContainer}>
+                    {/* Input Fields */}
+                    <View style={styles.form}>
+                        <View style={styles.inputWrapper}>
+                            <Text style={styles.label}>{'Email'}</Text>
                             <TextInput
-                                style={styles.passwordInput}
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry={!isPasswordVisible}
-                                placeholder="Enter your password"
+                                style={styles.input}
+                                value={email}
+                                onChangeText={setEmail}
+                                placeholder="Enter your email"
+                                placeholderTextColor="#888888" // 🚀 FIX 1: Hardcoded grey placeholder
+                                autoCapitalize="none"
+                                keyboardType="email-address"
                             />
-                            <TouchableOpacity onPress={() => setPasswordVisible(!isPasswordVisible)}>
-                                <Ionicons
-                                    name={isPasswordVisible ? "eye-outline" : "eye-off-outline"}
-                                    size={22}
-                                    color="#BDBDBD"
+                        </View>
+
+                        <View style={styles.inputWrapper}>
+                            <Text style={styles.label}>{'Password'}</Text>
+                            <View style={styles.passwordContainer}>
+                                <TextInput
+                                    style={styles.passwordInput}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry={!isPasswordVisible}
+                                    placeholder="Enter your password"
+                                    placeholderTextColor="#888888" // 🚀 FIX 1: Hardcoded grey placeholder
                                 />
+                                <TouchableOpacity onPress={() => setPasswordVisible(!isPasswordVisible)}>
+                                    <Ionicons
+                                        name={isPasswordVisible ? "eye-outline" : "eye-off-outline"}
+                                        size={22}
+                                        color="#888888"
+                                    />
+                                </TouchableOpacity>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.forgotBtn}
+                                onPress={() => router.push('/forgot-password')}
+                            >
+                                <Text style={styles.forgotText}>{'Forgot password?'}</Text>
                             </TouchableOpacity>
                         </View>
+
+                        {/* Main Login Button */}
                         <TouchableOpacity
-                            style={styles.forgotBtn}
-                            onPress={() => router.push('/forgot-password')}
+                            style={[styles.loginButton, loading && styles.disabledBtn]}
+                            onPress={handleLogin}
+                            disabled={loading}
                         >
-                            <Text style={styles.forgotText}>{'Forgot password?'}</Text>
+                            {loading ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.loginButtonText}>{'Log In'}</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
-
-                    {/* Main Login Button */}
-                    <TouchableOpacity
-                        style={[styles.loginButton, loading && styles.disabledBtn]}
-                        onPress={handleLogin}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.loginButtonText}>{'Log In'}</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </SafeAreaView>
     );
@@ -137,7 +140,14 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#FFFFFF' },
-    content: { flex: 1, paddingHorizontal: 30, justifyContent: 'center' },
+    // 🚀 FIX 2: Updated layout to support ScrollView and padding for the navigation bar
+    scrollContent: {
+        flexGrow: 1,
+        justifyContent: 'center',
+        paddingHorizontal: 30,
+        paddingBottom: 40, // Extra padding to keep the button above the Android nav bar
+        paddingTop: 20
+    },
     logoContainer: { alignItems: 'center', marginBottom: 40 },
     logo: { width: 140, height: 140, marginBottom: 15 },
     welcomeText: { fontSize: 32, fontWeight: '800', color: '#000' },
@@ -148,14 +158,14 @@ const styles = StyleSheet.create({
         height: 55, backgroundColor: '#fff', borderRadius: 12,
         paddingHorizontal: 15, fontSize: 16, borderWidth: 1, borderColor: '#E8E8E8',
         elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05, shadowRadius: 5,
+        shadowOpacity: 0.05, shadowRadius: 5, color: '#000' // Ensure typed text is dark
     },
     passwordContainer: {
         flexDirection: 'row', alignItems: 'center', height: 55,
         backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 15,
         borderWidth: 1, borderColor: '#E8E8E8', elevation: 2,
     },
-    passwordInput: { flex: 1, fontSize: 16 },
+    passwordInput: { flex: 1, fontSize: 16, color: '#000' }, // Ensure typed text is dark
     forgotBtn: { alignSelf: 'flex-end', marginTop: 10 },
     forgotText: { color: '#6389DA', fontWeight: '600' },
     loginButton: {
