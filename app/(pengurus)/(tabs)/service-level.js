@@ -126,19 +126,6 @@ export default function ServiceLevelScreen() {
                 />
             </View>
 
-                {!loading && (
-                    <FlatList
-                        data={filteredCategories}
-                        keyExtractor={item => item.id}
-                        renderItem={renderCategoryItem}
-                        // 🚀 4. Add padding bottom
-                        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 80 }]}
-                        showsVerticalScrollIndicator={false}
-                        ListEmptyComponent={
-                            <Text style={styles.emptyText}>No categories found.</Text>
-                        }
-                    />
-                )}
 
                 {/* 🚀 5. Lift the Add Button */}
                 <TouchableOpacity

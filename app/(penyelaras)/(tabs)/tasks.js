@@ -4,7 +4,7 @@ import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestor
 import React, { useEffect, useState, useMemo } from 'react';
 import {
     ActivityIndicator,
-    ScrollView,
+    FlatList,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -54,7 +54,7 @@ export default function TasksPage() {
                     day: 'numeric', month: 'short'
                 }) || 'No Date'
             }));
-            setTaskList(tasks);
+            setTasks(tasks);
             setLoading(false);
         }, (error) => {
             console.error("Firestore Error:", error);
@@ -64,7 +64,7 @@ export default function TasksPage() {
         return () => unsubscribe();
     }, []);
 
-    const displayedTasks = taskList.filter(task => {
+    const displayedTasks = tasks.filter(task => {
         return activeTab === 'Done' ? task.status === 'Done' : task.status !== 'Done';
     });
 
@@ -243,11 +243,11 @@ export default function TasksPage() {
                 <View style={styles.center}><ActivityIndicator size="large" color="#2F80ED" /></View>
             ) : (
                 <FlatList
-                    data={filteredTasks}
+                    data={displayedTasks}
                     keyExtractor={item => item.id}
-                    renderItem={renderTaskItem}
+                    renderItem={({ item }) => <TaskCard item={item} />}
                     // 🚀 4. Add padding bottom so list isn't blocked by the Add button
-                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 80 }]}
+                    contentContainerStyle={[{ paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <Text style={styles.emptyText}>No tasks found.</Text>
