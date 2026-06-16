@@ -11,12 +11,16 @@ import {
     View
 } from 'react-native';
 import { auth } from '../../../firebaseConfig';
+import { db } from '../../../firebaseConfig';
+import ScreenContainer from '../../../components/ScreenContainer';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function ReadOnlyTasksPage() {
-    const router = useRouter();
-    const [activeTab, setActiveTab] = useState('To be done');
-    const [taskList, setTaskList] = useState([]);
+export default function TasksPage() {
+    const [tasks, setTasks] = useState([]);
+    const [activeTab, setActiveTab] = useState('All');
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
+    const insets = useSafeAreaInsets();
 
     const PRIORITY_CONFIG = {
         'Critical': { bg: '#FDECEC', text: '#D32F2F', icon: 'alert-circle' },
@@ -219,49 +223,46 @@ export default function ReadOnlyTasksPage() {
     };
 
     return (
-        <View style={styles.container}>
+        // 🚀 3. Wrap with ScreenContainer
+        <ScreenContainer style={styles.container}>
             <View style={styles.tabBar}>
-                <TouchableOpacity
-                    onPress={() => setActiveTab('To be done')}
-                    style={[styles.tabItem, activeTab === 'To be done' && styles.activeTabItem]}
-                >
-                    <Text style={[styles.tabText, activeTab === 'To be done' && styles.activeTabText]}>To be done</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={() => setActiveTab('Done')}
-                    style={[styles.tabItem, activeTab === 'Done' && styles.activeTabItem]}
-                >
-                    <Text style={[styles.tabText, activeTab === 'Done' && styles.activeTabText]}>Done</Text>
-                </TouchableOpacity>
+                {['All', 'To Do', 'In Progress', 'Done'].map(tab => (
+                    <TouchableOpacity
+                        key={tab}
+                        style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
+                        onPress={() => setActiveTab(tab)}
+                    >
+                        <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+                            {tab}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
             </View>
 
             {loading ? (
                 <View style={styles.center}><ActivityIndicator size="large" color="#2F80ED" /></View>
             ) : (
-                    <ScrollView
-                        // 🚀 3. Add dynamic paddingBottom so list clears the nav bar and button
-                        contentContainerStyle={[styles.scrollContent, { paddingBottom: 96 }]}
-                        showsVerticalScrollIndicator={false}
-                    >
-                    {displayedTasks.length > 0 ? (
-                        displayedTasks.map((task) => <TaskCard key={task.id} item={task} />)
-                    ) : (
-                        <View style={styles.emptyContainer}>
-                            <Ionicons name="clipboard-outline" size={60} color="#E5E7EB" />
-                            <Text style={styles.emptyText}>No tasks here yet</Text>
-                        </View>
-                    )}
-                </ScrollView>
+                <FlatList
+                    data={filteredTasks}
+                    keyExtractor={item => item.id}
+                    renderItem={renderTaskItem}
+                    // 🚀 4. Add padding bottom so list isn't blocked by the Add button
+                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 80 }]}
+                    showsVerticalScrollIndicator={false}
+                    ListEmptyComponent={
+                        <Text style={styles.emptyText}>No tasks found.</Text>
+                    }
+                />
             )}
 
+            {/* 🚀 5. Lift the Add Button above the navigation bar */}
             <TouchableOpacity
-                // 🚀 4. Dynamically lift the button above the OS navigation bar
-                style={styles.fab}
+                style={[styles.fab, { bottom: insets.bottom + 20 }]}
                 onPress={() => router.push('/add-task')}
             >
                 <Ionicons name="add" size={30} color="white" />
             </TouchableOpacity>
-        </View>
+        </ScreenContainer>
     );
 }
 

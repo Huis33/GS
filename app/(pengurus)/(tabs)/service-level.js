@@ -10,13 +10,16 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { db } from '../../../firebaseConfig';
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import ScreenContainer from '../../../components/ScreenContainer';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ServiceLevelScreen() {
     const router = useRouter();
     const [sections, setSections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [totalCategories, setTotalCategories] = useState(0);
+    const insets = useSafeAreaInsets();
 
     const PRIORITY_CONFIG = {
         'Critical': { color: '#FDECEC', icon: 'alert-circle' },
@@ -107,6 +110,7 @@ export default function ServiceLevelScreen() {
 
     return (
         <View style={styles.container}>
+            <ScreenContainer style={styles.container}>
             <View style={styles.content}>
                 <Text style={styles.totalText}>Total {totalCategories} Categories</Text>
 
@@ -122,11 +126,28 @@ export default function ServiceLevelScreen() {
                 />
             </View>
 
-            <TouchableOpacity
-                style={[styles.fab, { bottom: 20 }]}
-                onPress={() => router.push('/add-category')}>
-                <Ionicons name="add" size={30} color="white" />
-            </TouchableOpacity>
+                {!loading && (
+                    <FlatList
+                        data={filteredCategories}
+                        keyExtractor={item => item.id}
+                        renderItem={renderCategoryItem}
+                        // 🚀 4. Add padding bottom
+                        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 80 }]}
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={
+                            <Text style={styles.emptyText}>No categories found.</Text>
+                        }
+                    />
+                )}
+
+                {/* 🚀 5. Lift the Add Button */}
+                <TouchableOpacity
+                    style={[styles.fab, { bottom: insets.bottom + 20 }]}
+                    onPress={() => router.push('/add-category')}
+                >
+                    <Ionicons name="add" size={30} color="white" />
+                </TouchableOpacity>
+            </ScreenContainer>
         </View>
     );
 }
