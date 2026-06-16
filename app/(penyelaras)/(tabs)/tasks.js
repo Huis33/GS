@@ -46,34 +46,73 @@ export default function TasksPage() {
 
         // onSnapshot allows real-time updates when a new task is added
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const tasks = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                // Convert Firestore Timestamp to readable string
-                displayDate: doc.data().dueDate?.toDate().toLocaleDateString('en-GB', {
-                    day: 'numeric', month: 'short'
-                }) || 'No Date'
-            }));
-            setTasks(tasks);
-            setLoading(false);
+            console.log("[tasks.js] Received snapshot with docs:", snapshot.docs.length);
+            try {
+                const tasksList = snapshot.docs.map(doc => {
+                    const data = doc.data();
+                    let displayDate = 'No Date';
+                    try {
+                        displayDate = data.dueDate?.toDate ? data.dueDate.toDate().toLocaleDateString('en-GB', {
+                            day: 'numeric', month: 'short'
+                        }) : (data.dueDate ? new Date(data.dueDate).toLocaleDateString('en-GB') : 'No Date');
+                    } catch (err) {
+                        console.error(`[tasks.js] Error parsing date for task ${doc.id}:`, err);
+                    }
+                    return {
+                        id: doc.id,
+                        ...data,
+                        displayDate
+                    };
+                });
+                console.log("[tasks.js] Successfully processed tasks:", tasksList.length);
+                setTasks(tasksList);
+                setLoading(false);
+            } catch (err) {
+                console.error("[tasks.js] Error processing snapshot:", err);
+                setLoading(false);
+            }
         }, (error) => {
-            console.error("Firestore Error:", error);
+            console.error("[tasks.js] Firestore Error:", error);
             setLoading(false);
         });
 
         return () => unsubscribe();
     }, []);
 
+    // Fix: filter correctly for each tab
     const displayedTasks = tasks.filter(task => {
-        return activeTab === 'Done' ? task.status === 'Done' : task.status !== 'Done';
+        if (activeTab === 'All') return true;
+        if (activeTab === 'Done') return task.status === 'Done';
+        if (activeTab === 'To Do') return task.status === 'Not Yet Started' || task.status === 'Not Yet Assigned';
+        if (activeTab === 'In Progress') return task.status === 'In Progress';
+        return true;
     });
 
+    // Fix: getProgressWidth must be defined BEFORE getStatusStyles which calls it
+    const getProgressWidth = (item) => {
+        if (!item?.status) return '0%';
+        if (item.status === 'Done') return '100%';
+        if (item.status === 'Not Yet Started' || item.status === 'Not Yet Assigned') return '1%';
+
+        if (item.status === 'In Progress') {
+            let rawProgress = item.progress;
+            if (rawProgress === undefined || rawProgress === null) return '10%';
+            if (typeof rawProgress === 'string') {
+                rawProgress = parseFloat(rawProgress.replace('%', ''));
+            }
+            let percentage = rawProgress <= 1 ? rawProgress * 100 : rawProgress;
+            percentage = Math.round(percentage);
+            if (isNaN(percentage)) return '10%';
+            if (percentage < 1) percentage = 1;
+            if (percentage > 100) percentage = 100;
+            return `${percentage}%`;
+        }
+        return '0%';
+    };
+
     const getStatusStyles = (item) => {
-        // Handle potential undefined item safely
         if (!item) return { bg: '#FFF', text: '#374151', bar: '#9CA3AF', width: '0%' };
-
         const width = getProgressWidth(item);
-
         switch (item.status) {
             case 'Not Yet Started':
                 return { bg: '#FFDCDC', text: '#C0392B', bar: '#E74C3C', width };
@@ -89,18 +128,22 @@ export default function TasksPage() {
     };
 
     const TaskCard = ({ item }) => {
-        const priorityStyle = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG['Medium'];
+        const priorityStyle = PRIORITY_CONFIG[item?.priority] || PRIORITY_CONFIG['Medium'];
 
         const isOverdue = useMemo(() => {
-            if (item.status === 'Done' || !item.dueDate) return false;
+            try {
+                if (item?.status === 'Done' || !item?.dueDate) return false;
 
-            const deadline = item.dueDate?.toDate
-                ? item.dueDate.toDate()
-                : new Date(item.dueDate);
+                const deadline = item.dueDate?.toDate
+                    ? item.dueDate.toDate()
+                    : new Date(item.dueDate);
 
-            deadline.setHours(23, 59, 59, 999);
-
-            return new Date() > deadline;
+                deadline.setHours(23, 59, 59, 999);
+                return new Date() > deadline;
+            } catch (err) {
+                console.error("[tasks.js] Error in isOverdue useMemo for task:", item?.id, err);
+                return false;
+            }
         }, [item]);
 
         const baseStatusStyle = getStatusStyles(item);
@@ -114,113 +157,86 @@ export default function TasksPage() {
             }
             : baseStatusStyle;
 
-        return (
-            <TouchableOpacity
-                style={[
-                    styles.card,
-                    { backgroundColor: isOverdue ? '#FFE5E5' : '#F0F7FF'}
-                ]}
-                onPress={() => router.push({ pathname: '/task-detail', params: { id: item.id } })}
-                activeOpacity={0.9}
-            >
-                <View style={styles.cardHeader}>
-                    <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.bg }]}>
-                        <Ionicons name={priorityStyle.icon} size={14} color={priorityStyle.text} />
-                        <Text style={[styles.priorityText, { color: priorityStyle.text }]}>{item.priority}</Text>
-                    </View>
-                    <View style={styles.dateBadge}>
-                        <Ionicons name="time-outline" size={14} color="#6B7280" />
-                        <Text style={styles.dateText}>
-                            {item.dueDate?.toDate
-                                ? item.dueDate.toDate().toLocaleDateString()
-                                : 'No Date'}
-                        </Text>
-                    </View>
-                </View>
-
-                <Text
+        try {
+            return (
+                <TouchableOpacity
                     style={[
-                        styles.cardTitle,
-                        isOverdue && { color: '#B00020' }
+                        styles.card,
+                        { backgroundColor: isOverdue ? '#FFE5E5' : '#F0F7FF'}
                     ]}
+                    onPress={() => router.push({ pathname: '/task-detail', params: { id: item?.id } })}
+                    activeOpacity={0.9}
                 >
-                    {item.name}
-                </Text>
-                <Text
-                    style={[
-                        styles.cardDescription,
-                        isOverdue && { color: '#7F1D1D' }
-                    ]}
-                    numberOfLines={2}
-                >
-                    {item.taskDescription}
-                </Text>
+                    <View style={styles.cardHeader}>
+                        <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.bg }]}>
+                            <Ionicons name={priorityStyle.icon} size={14} color={priorityStyle.text} />
+                            <Text style={[styles.priorityText, { color: priorityStyle.text }]}>{item?.priority}</Text>
+                        </View>
+                        <View style={styles.dateBadge}>
+                            <Ionicons name="time-outline" size={14} color="#6B7280" />
+                            <Text style={styles.dateText}>
+                                {item?.dueDate?.toDate
+                                    ? item.dueDate.toDate().toLocaleDateString()
+                                    : 'No Date'}
+                            </Text>
+                        </View>
+                    </View>
 
-                <View style={styles.progressSection}>
-                    <View style={styles.progressInfo}>
-                        <Text style={styles.progressLabel}>Status Progress: </Text>
-                        <Text style={styles.progressPercent}>{statusStyle.width}</Text>
+                    <Text
+                        style={[
+                            styles.cardTitle,
+                            isOverdue && { color: '#B00020' }
+                        ]}
+                    >
+                        {item?.name}
+                    </Text>
+                    <Text
+                        style={[
+                            styles.cardDescription,
+                            isOverdue && { color: '#7F1D1D' }
+                        ]}
+                        numberOfLines={2}
+                    >
+                        {item?.taskDescription}
+                    </Text>
+
+                    <View style={styles.progressSection}>
+                        <View style={styles.progressInfo}>
+                            <Text style={styles.progressLabel}>Status Progress: </Text>
+                            <Text style={styles.progressPercent}>{statusStyle.width}</Text>
+                        </View>
+                        <View style={styles.progressBarContainer}>
+                            <View
+                                style={[
+                                    styles.progressBarFill,
+                                    {
+                                        width: statusStyle.width === '0%' ? '100%' : statusStyle.width,
+                                        backgroundColor: statusStyle.width === '0%' ? '#D1D5DB' : statusStyle.bar
+                                    }
+                                ]}
+                            />
+                        </View>
                     </View>
-                    <View style={styles.progressBarContainer}>
-                        <View
-                            style={[
-                                styles.progressBarFill,
-                                {
-                                    width: statusStyle.width === '0%' ? '100%' : statusStyle.width,
-                                    backgroundColor: statusStyle.width === '0%' ? '#D1D5DB' : statusStyle.bar
-                                }
-                            ]}
-                        />
+
+                    <View style={styles.cardFooter}>
+                        <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+                            <Text style={[styles.statusText, { color: statusStyle.text }]}>{item?.status}</Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </View>
+                </TouchableOpacity>
+            );
+        } catch (err) {
+            console.error("[tasks.js] Fatal error rendering TaskCard for item:", item, err);
+            return (
+                <View style={styles.card}>
+                    <Text style={{color: 'red'}}>Error rendering task: {item?.name}</Text>
                 </View>
-
-                <View style={styles.cardFooter}>
-                    <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-                        <Text style={[styles.statusText, { color: statusStyle.text }]}>{item.status}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                </View>
-            </TouchableOpacity>
-        );
-    };
-
-    const getProgressWidth = (item) => {
-        if (item.status === 'Done') return '100%';
-        if (item.status === 'Not Yet Started' || item.status === 'Not Yet Assigned') return '1%';
-
-        if (item.status === 'In Progress') {
-            // 1. Grab the raw value
-            let rawProgress = item.progress;
-
-            // 2. If it doesn't exist or is null, default to 10%
-            if (rawProgress === undefined || rawProgress === null) {
-                return '10%';
-            }
-
-            // 3. If it was saved as a string (e.g., "50" or "50%"), convert it to a real number
-            if (typeof rawProgress === 'string') {
-                rawProgress = parseFloat(rawProgress.replace('%', ''));
-            }
-
-            // 4. Handle decimal vs whole number (e.g., 0.5 vs 50)
-            // If the number is 1 or less, assume it's a decimal and multiply by 100
-            let percentage = rawProgress <= 1 ? rawProgress * 100 : rawProgress;
-
-            // 5. Clean up the final number
-            percentage = Math.round(percentage);
-
-            // Fallback if the data is totally corrupted (NaN)
-            if (isNaN(percentage)) return '10%';
-
-            // Keep it safely within 1% and 100%
-            if (percentage < 1) percentage = 1;
-            if (percentage > 100) percentage = 100;
-
-            return `${percentage}%`;
+            );
         }
-
-        return '0%';
     };
+
+    // getProgressWidth moved above getStatusStyles to fix definition order
 
     return (
         // 🚀 3. Wrap with ScreenContainer
@@ -272,7 +288,10 @@ const styles = StyleSheet.create({
     tabBar: { flexDirection: 'row', backgroundColor: '#FFF', paddingTop: 10, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
     tabItem: { flex: 1, paddingVertical: 15, alignItems: 'center' },
     activeTabItem: { borderBottomWidth: 3, borderBottomColor: '#2F80ED' },
-    tabText: { fontSize: 15, color: '#94A3B8', fontWeight: '600' },
+    // Fix: add missing tabButton / activeTabButton styles (used in JSX)
+    tabButton: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: 'transparent' },
+    activeTabButton: { borderBottomColor: '#2F80ED' },
+    tabText: { fontSize: 14, color: '#94A3B8', fontWeight: '600' },
     activeTabText: { color: '#2F80ED' },
     scrollContent: { padding: 16 },
     card: { borderRadius: 20, padding: 20, marginBottom: 20, elevation: 5 },

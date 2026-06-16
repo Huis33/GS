@@ -34,47 +34,54 @@ export default function ServiceLevelScreen() {
 
         // 2. Set up real-time listener
         const unsubscribe = onSnapshot(priorityCollection, (snapshot) => {
-            const rawData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            console.log("[service-level.js] Received snapshot with docs:", snapshot.docs.length);
+            try {
+                const rawData = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
 
-            setTotalCategories(rawData.length);
+                setTotalCategories(rawData.length);
 
-            // 3. Transform flat Firebase data into SectionList format
-            const grouped = rawData.reduce((acc, item) => {
-                const category = item.category || 'Low';
-                if (!acc[category]) {
-                    acc[category] = {
-                        title: category,
-                        color: PRIORITY_CONFIG[category]?.color || '#F1F9F1',
-                        icon: PRIORITY_CONFIG[category]?.icon || 'help-circle',
-                        data: []
-                    };
-                }
-                // Push the categoryName into the data array
-                acc[category].data.push({
-                    name: item.categoryName,
-                    id: item.id,
-                    description: item.description
-                });
-                return acc;
-            }, {});
+                // 3. Transform flat Firebase data into SectionList format
+                const grouped = rawData.reduce((acc, item) => {
+                    const category = item.category || 'Low';
+                    if (!acc[category]) {
+                        acc[category] = {
+                            title: category,
+                            color: PRIORITY_CONFIG[category]?.color || '#F1F9F1',
+                            icon: PRIORITY_CONFIG[category]?.icon || 'help-circle',
+                            data: []
+                        };
+                    }
+                    // Push the categoryName into the data array
+                    acc[category].data.push({
+                        name: item.categoryName,
+                        id: item.id,
+                        description: item.description
+                    });
+                    return acc;
+                }, {});
 
-            // 4. Sort sections in a specific order: Critical -> High -> Medium -> Low
-            const order = ['Critical', 'High', 'Medium', 'Low'];
-            const sortedSections = order
-                .filter(level => grouped[level])
-                .map(level => {
-                    // 3. SORT BY ALPHABET HERE
-                    const section = grouped[level];
-                    section.data.sort((a, b) => a.name.localeCompare(b.name));
-                    return section;
-                });
-            setSections(sortedSections);
-            setLoading(false);
+                // 4. Sort sections in a specific order: Critical -> High -> Medium -> Low
+                const order = ['Critical', 'High', 'Medium', 'Low'];
+                const sortedSections = order
+                    .filter(level => grouped[level])
+                    .map(level => {
+                        // 3. SORT BY ALPHABET HERE, safely checking for undefined names
+                        const section = grouped[level];
+                        section.data.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+                        return section;
+                    });
+                console.log("[service-level.js] Successfully processed sections:", sortedSections.length);
+                setSections(sortedSections);
+                setLoading(false);
+            } catch (err) {
+                console.error("[service-level.js] Error processing snapshot:", err);
+                setLoading(false);
+            }
         }, (error) => {
-            console.error("Firebase Fetch Error: ", error);
+            console.error("[service-level.js] Firebase Fetch Error:", error);
             setLoading(false);
         });
 
@@ -88,17 +95,24 @@ export default function ServiceLevelScreen() {
         </View>
     );
 
-    const renderItem = ({ item }) => (
-        <TouchableOpacity
-            style={styles.itemContainer}
-            onPress={() => router.push({
-                pathname: '/category-details',
-                params: { id: item.id, name: item.name, description: item.description }
-            })}
-        >
-            <Text style={styles.itemText}>{item.name}</Text>
-        </TouchableOpacity>
-    );
+    const renderItem = ({ item }) => {
+        try {
+            return (
+                <TouchableOpacity
+                    style={styles.itemContainer}
+                    onPress={() => router.push({
+                        pathname: '/category-details',
+                        params: { id: item.id, name: item.name, description: item.description }
+                    })}
+                >
+                    <Text style={styles.itemText}>{item.name}</Text>
+                </TouchableOpacity>
+            );
+        } catch (err) {
+            console.error("[service-level.js] Error rendering item:", item, err);
+            return null;
+        }
+    };
 
     if (loading) {
         return (

@@ -115,8 +115,8 @@ export default function AddCategoryScreen() {
                                 style={[styles.input, styles.textArea, { color: '#000' }]}
                                 placeholder="Enter Description (Optional)"
                                 placeholderTextColor="#888888"
-                                value={categoryDescription}
-                                onChangeText={setCategoryDescription}
+                                value={description}
+                                onChangeText={setDescription}
                                 multiline
                                 numberOfLines={4}
                             />

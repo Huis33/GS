@@ -380,8 +380,8 @@ export default function NewTaskScreen() {
                                 style={[styles.input, styles.textArea, { color: '#000' }]}
                                 placeholder="Enter task description"
                                 placeholderTextColor="#888888"
-                                value={taskDescription}
-                                onChangeText={setTaskDescription}
+                                value={description}
+                                onChangeText={setDescription}
                                 multiline
                                 numberOfLines={4}
                             />
