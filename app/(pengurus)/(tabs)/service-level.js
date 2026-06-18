@@ -10,16 +10,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { db } from '../../../firebaseConfig';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot } from 'firebase/firestore';
 import ScreenContainer from '../../../components/ScreenContainer';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ServiceLevelScreen() {
     const router = useRouter();
     const [sections, setSections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [totalCategories, setTotalCategories] = useState(0);
-    const insets = useSafeAreaInsets();
 
     const PRIORITY_CONFIG = {
         'Critical': { color: '#FDECEC', icon: 'alert-circle' },
@@ -123,8 +121,8 @@ export default function ServiceLevelScreen() {
     }
 
     return (
-        <View style={styles.container}>
-            <ScreenContainer style={styles.container}>
+        // 🚀 FIX 1: Removed the double `<View>` wrapper so ScreenContainer works properly
+        <ScreenContainer style={styles.container}>
             <View style={styles.content}>
                 <Text style={styles.totalText}>Total {totalCategories} Categories</Text>
 
@@ -135,21 +133,20 @@ export default function ServiceLevelScreen() {
                     renderSectionHeader={renderHeader}
                     stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
-                    contentContainerStyle={{ paddingBottom: 88 }}
+                    // 🚀 FIX 2: Replaced the missing styles.listContent with a clean inline style
+                    contentContainerStyle={{ paddingBottom: 100 }}
                     ListEmptyComponent={<Text style={styles.emptyText}>No categories found.</Text>}
                 />
             </View>
 
-
-                {/* 🚀 5. Lift the Add Button */}
-                <TouchableOpacity
-                    style={[styles.fab, { bottom: insets.bottom + 20 }]}
-                    onPress={() => router.push('/add-category')}
-                >
-                    <Ionicons name="add" size={30} color="white" />
-                </TouchableOpacity>
-            </ScreenContainer>
-        </View>
+            {/* 🚀 FIX 3: Pointed to the updated styles.fab below */}
+            <TouchableOpacity
+                style={styles.fab}
+                onPress={() => router.push('/add-category')}
+            >
+                <Ionicons name="add" size={30} color="white" />
+            </TouchableOpacity>
+        </ScreenContainer>
     );
 }
 
@@ -165,9 +162,19 @@ const styles = StyleSheet.create({
     itemText: { fontSize: 16, color: '#333' },
     emptyText: { textAlign: 'center', marginTop: 50, color: '#999' },
     fab: {
-        position: 'absolute', right: 20, bottom: 20, backgroundColor: '#2F80ED',
-        width: 56, height: 56, borderRadius: 28, justifyContent: 'center',
-        alignItems: 'center', elevation: 5, shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84,
+        position: 'absolute',
+        right: 20,
+        bottom: 25, // 🚀 Cleanly set to 25 here instead of inline
+        backgroundColor: '#2F80ED',
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
     }
 });

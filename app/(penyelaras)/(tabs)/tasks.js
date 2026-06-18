@@ -259,7 +259,8 @@ export default function TasksPage() {
                     data={displayedTasks}
                     keyExtractor={item => item.id}
                     renderItem={({ item }) => <TaskCard item={item} />}
-                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 80 }]}
+                    // 🚀 FIX 1: Fixed padding of 100 clears the FAB perfectly without leaving an awkward gap
+                    contentContainerStyle={[styles.listContent, { paddingBottom: 100 }]}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <Text style={styles.emptyText}>No tasks found.</Text>
@@ -267,8 +268,9 @@ export default function TasksPage() {
                 />
             )}
 
+            {/* 🚀 FIX 2: Revert to standard bottom spacing. ScreenContainer already protects it from the nav bar */}
             <TouchableOpacity
-                style={[styles.fab, { bottom: insets.bottom + 20 }]}
+                style={[styles.fab, { bottom: 25 }]}
                 onPress={() => router.push('/add-task')}
             >
                 <Ionicons name="add" size={30} color="white" />
