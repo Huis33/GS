@@ -8,7 +8,8 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
-    View
+    View,
+    ScrollView
 } from 'react-native';
 import { auth } from '../../../firebaseConfig';
 import { db } from '../../../firebaseConfig';
@@ -17,7 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TasksPage() {
     const [tasks, setTasks] = useState([]);
-    const [activeTab, setActiveTab] = useState('All');
+    const [activeTab, setActiveTab] = useState('To Be Done');
     const [loading, setLoading] = useState(true);
     const router = useRouter();
     const insets = useSafeAreaInsets();
@@ -79,16 +80,15 @@ export default function TasksPage() {
         return () => unsubscribe();
     }, []);
 
-    // Fix: filter correctly for each tab
     const displayedTasks = tasks.filter(task => {
-        if (activeTab === 'All') return true;
         if (activeTab === 'Done') return task.status === 'Done';
-        if (activeTab === 'To Do') return task.status === 'Not Yet Started' || task.status === 'Not Yet Assigned';
-        if (activeTab === 'In Progress') return task.status === 'In Progress';
+        if (activeTab === 'To Be Done') {
+            // Anything that is NOT 'Done' is considered 'To Be Done'
+            return task.status !== 'Done';
+        }
         return true;
     });
 
-    // Fix: getProgressWidth must be defined BEFORE getStatusStyles which calls it
     const getProgressWidth = (item) => {
         if (!item?.status) return '0%';
         if (item.status === 'Done') return '100%';
@@ -162,26 +162,12 @@ export default function TasksPage() {
                 <TouchableOpacity
                     style={[
                         styles.card,
-                        { backgroundColor: isOverdue ? '#FFE5E5' : '#F0F7FF'}
+                        { backgroundColor: isOverdue ? '#FFE5E5' : '#F0F7FF' }
                     ]}
                     onPress={() => router.push({ pathname: '/task-detail', params: { id: item?.id } })}
                     activeOpacity={0.9}
                 >
-                    <View style={styles.cardHeader}>
-                        <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.bg }]}>
-                            <Ionicons name={priorityStyle.icon} size={14} color={priorityStyle.text} />
-                            <Text style={[styles.priorityText, { color: priorityStyle.text }]}>{item?.priority}</Text>
-                        </View>
-                        <View style={styles.dateBadge}>
-                            <Ionicons name="time-outline" size={14} color="#6B7280" />
-                            <Text style={styles.dateText}>
-                                {item?.dueDate?.toDate
-                                    ? item.dueDate.toDate().toLocaleDateString()
-                                    : 'No Date'}
-                            </Text>
-                        </View>
-                    </View>
-
+                    {/* Top Section: Title & Description */}
                     <Text
                         style={[
                             styles.cardTitle,
@@ -197,32 +183,44 @@ export default function TasksPage() {
                         ]}
                         numberOfLines={2}
                     >
-                        {item?.taskDescription}
+                        {item?.taskDescription || "No description provided"}
                     </Text>
 
-                    <View style={styles.progressSection}>
-                        <View style={styles.progressInfo}>
-                            <Text style={styles.progressLabel}>Status Progress: </Text>
-                            <Text style={styles.progressPercent}>{statusStyle.width}</Text>
-                        </View>
-                        <View style={styles.progressBarContainer}>
-                            <View
-                                style={[
-                                    styles.progressBarFill,
-                                    {
-                                        width: statusStyle.width === '0%' ? '100%' : statusStyle.width,
-                                        backgroundColor: statusStyle.width === '0%' ? '#D1D5DB' : statusStyle.bar
-                                    }
-                                ]}
-                            />
-                        </View>
-                    </View>
-
-                    <View style={styles.cardFooter}>
+                    {/* Middle Section: Status & Progress Row */}
+                    <View style={styles.progressRow}>
                         <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
                             <Text style={[styles.statusText, { color: statusStyle.text }]}>{item?.status}</Text>
                         </View>
-                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                        <Text style={styles.progressPercent}>{statusStyle.width}</Text>
+                    </View>
+
+                    {/* Progress Bar */}
+                    <View style={styles.progressBarContainer}>
+                        <View
+                            style={[
+                                styles.progressBarFill,
+                                {
+                                    width: statusStyle.width === '0%' ? '100%' : statusStyle.width,
+                                    backgroundColor: statusStyle.width === '0%' ? '#D1D5DB' : statusStyle.bar
+                                }
+                            ]}
+                        />
+                    </View>
+
+                    {/* Footer Section: Priority & Date */}
+                    <View style={styles.cardFooter}>
+                        <View style={[styles.priorityBadge, { backgroundColor: priorityStyle.bg }]}>
+                            <Ionicons name={priorityStyle.icon} size={14} color={priorityStyle.text} />
+                            <Text style={[styles.priorityText, { color: priorityStyle.text }]}>{item?.priority}</Text>
+                        </View>
+                        <View style={styles.dateBadge}>
+                            <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+                            <Text style={styles.dateText}>
+                                {item?.dueDate?.toDate
+                                    ? item.dueDate.toDate().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+                                    : 'No Date'}
+                            </Text>
+                        </View>
                     </View>
                 </TouchableOpacity>
             );
@@ -230,29 +228,28 @@ export default function TasksPage() {
             console.error("[tasks.js] Fatal error rendering TaskCard for item:", item, err);
             return (
                 <View style={styles.card}>
-                    <Text style={{color: 'red'}}>Error rendering task: {item?.name}</Text>
+                    <Text style={{ color: 'red' }}>Error rendering task: {item?.name}</Text>
                 </View>
             );
         }
     };
 
-    // getProgressWidth moved above getStatusStyles to fix definition order
-
     return (
-        // 🚀 3. Wrap with ScreenContainer
         <ScreenContainer style={styles.container}>
-            <View style={styles.tabBar}>
-                {['All', 'To Do', 'In Progress', 'Done'].map(tab => (
-                    <TouchableOpacity
-                        key={tab}
-                        style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
-                        onPress={() => setActiveTab(tab)}
-                    >
-                        <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                            {tab}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
+            {/* Horizontal Pill Tabs */}
+            <View style={styles.tabBarContainer}>
+                    {/* 3. Update the array mapped for the tabs */}
+                    {['To Be Done', 'Done'].map(tab => (
+                        <TouchableOpacity
+                            key={tab}
+                            style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
+                            onPress={() => setActiveTab(tab)}
+                        >
+                            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+                                {tab}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
             </View>
 
             {loading ? (
@@ -262,8 +259,7 @@ export default function TasksPage() {
                     data={displayedTasks}
                     keyExtractor={item => item.id}
                     renderItem={({ item }) => <TaskCard item={item} />}
-                    // 🚀 4. Add padding bottom so list isn't blocked by the Add button
-                    contentContainerStyle={[{ paddingBottom: insets.bottom + 80 }]}
+                    contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 80 }]}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <Text style={styles.emptyText}>No tasks found.</Text>
@@ -271,7 +267,6 @@ export default function TasksPage() {
                 />
             )}
 
-            {/* 🚀 5. Lift the Add Button above the navigation bar */}
             <TouchableOpacity
                 style={[styles.fab, { bottom: insets.bottom + 20 }]}
                 onPress={() => router.push('/add-task')}
@@ -285,37 +280,40 @@ export default function TasksPage() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    tabBar: { flexDirection: 'row', backgroundColor: '#FFF', paddingTop: 10, borderBottomWidth: 1, borderBottomColor: '#E2E8F0' },
-    tabItem: { flex: 1, paddingVertical: 15, alignItems: 'center' },
-    activeTabItem: { borderBottomWidth: 3, borderBottomColor: '#2F80ED' },
-    // Fix: add missing tabButton / activeTabButton styles (used in JSX)
-    tabButton: { flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 3, borderBottomColor: 'transparent' },
-    activeTabButton: { borderBottomColor: '#2F80ED' },
-    tabText: { fontSize: 14, color: '#94A3B8', fontWeight: '600' },
+
+    /* Updated Pill Tabs Styling */
+    tabBarContainer: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E0E0E0', backgroundColor: '#F5F9FF' },
+    tabBar: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
+    tabButton: { flex: 1, paddingVertical: 15, alignItems: 'center' },
+    activeTabButton: { borderBottomWidth: 3, borderBottomColor: '#2F80ED' },
+    tabText: { fontSize: 16, color: '#999', fontWeight: '500' },
     activeTabText: { color: '#2F80ED' },
-    scrollContent: { padding: 16 },
-    card: { borderRadius: 20, padding: 20, marginBottom: 20, elevation: 5 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-    priorityBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-    priorityText: { fontSize: 12, fontWeight: '600', marginLeft: 4 },
-    dateBadge: { flexDirection: 'row', alignItems: 'center' },
-    dateText: { marginLeft: 4, color: '#64748B', fontSize: 12, fontWeight: '500' },
-    cardTitle: { fontSize: 18, fontWeight: '700', color: '#1E293B', marginBottom: 6 },
+    /* Card Listing Styling */
+    listContent: { padding: 16 },
+    card: { borderRadius: 16, padding: 20, marginBottom: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
+    cardTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B', marginBottom: 4 },
     cardDescription: { fontSize: 14, color: '#64748B', lineHeight: 20, marginBottom: 16 },
-    progressSection: { marginBottom: 16 },
-    progressInfo: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-    progressLabel: { fontSize: 12, color: '#94A3B8', fontWeight: '600' },
-    progressPercent: { fontSize: 12, color: '#475569', fontWeight: '700' },
-    progressBarContainer: { height: 6, backgroundColor: '#E2E8F0', borderRadius: 3, overflow: 'hidden' },
-    progressBarFill: { height: '100%', borderRadius: 3 },
-    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
+
+    /* Progress & Status Row */
+    progressRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
     statusBadge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
-    statusText: { fontSize: 12, fontWeight: '700' },
+    statusText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+    progressPercent: { fontSize: 14, color: '#1E293B', fontWeight: '700' },
+    progressBarContainer: { height: 8, backgroundColor: '#E2E8F0', borderRadius: 4, overflow: 'hidden' },
+    progressBarFill: { height: '100%', borderRadius: 4 },
+
+    /* Card Footer Row */
+    cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)' },
+    priorityBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    priorityText: { fontSize: 12, fontWeight: '700', marginLeft: 4 },
+    dateBadge: { flexDirection: 'row', alignItems: 'center' },
+    dateText: { marginLeft: 6, color: '#64748B', fontSize: 13, fontWeight: '600' },
+
+    /* Floating Action Button */
     fab: {
-        position: 'absolute', bottom: 30, right: 25, backgroundColor: '#2F80ED',
+        position: 'absolute', right: 25, backgroundColor: '#2F80ED',
         width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center',
         elevation: 5, shadowColor: '#2F80ED', shadowOpacity: 0.4, shadowRadius: 10
     },
-    emptyContainer: { alignItems: 'center', marginTop: 100 },
-    emptyText: { marginTop: 10, color: '#94A3B8', fontSize: 16, fontWeight: '500' }
+    emptyText: { textAlign: 'center', marginTop: 100, color: '#94A3B8', fontSize: 16, fontWeight: '500' }
 });
