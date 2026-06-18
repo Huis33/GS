@@ -1,20 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
     StyleSheet,
     Text,
     TouchableOpacity,
-    View,
-    ScrollView
+    View
 } from 'react-native';
-import { auth } from '../../../firebaseConfig';
-import { db } from '../../../firebaseConfig';
-import ScreenContainer from '../../../components/ScreenContainer';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import ScreenContainer from '../../../components/ScreenContainer';
+import { auth, db } from '../../../firebaseConfig';
 
 export default function TasksPage() {
     const [tasks, setTasks] = useState([]);
@@ -235,21 +233,21 @@ export default function TasksPage() {
     };
 
     return (
-        <ScreenContainer style={styles.container}>
+        <ScreenContainer style={styles.container} edges={['bottom']}>
             {/* Horizontal Pill Tabs */}
             <View style={styles.tabBarContainer}>
-                    {/* 3. Update the array mapped for the tabs */}
-                    {['To Be Done', 'Done'].map(tab => (
-                        <TouchableOpacity
-                            key={tab}
-                            style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
-                            onPress={() => setActiveTab(tab)}
-                        >
-                            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-                                {tab}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
+                {/* 3. Update the array mapped for the tabs */}
+                {['To Be Done', 'Done'].map(tab => (
+                    <TouchableOpacity
+                        key={tab}
+                        style={[styles.tabButton, activeTab === tab && styles.activeTabButton]}
+                        onPress={() => setActiveTab(tab)}
+                    >
+                        <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
+                            {tab}
+                        </Text>
+                    </TouchableOpacity>
+                ))}
             </View>
 
             {loading ? (
