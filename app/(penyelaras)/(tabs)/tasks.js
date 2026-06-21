@@ -233,7 +233,7 @@ export default function TasksPage() {
     };
 
     return (
-        <ScreenContainer style={styles.container} edges={['bottom']}>
+        <ScreenContainer>
             {/* Horizontal Pill Tabs */}
             <View style={styles.tabBarContainer}>
                 {/* 3. Update the array mapped for the tabs */}
@@ -257,8 +257,13 @@ export default function TasksPage() {
                     data={displayedTasks}
                     keyExtractor={item => item.id}
                     renderItem={({ item }) => <TaskCard item={item} />}
-                    // 🚀 FIX 1: Fixed padding of 100 clears the FAB perfectly without leaving an awkward gap
-                    contentContainerStyle={[styles.listContent, { paddingBottom: 100 }]}
+                        contentContainerStyle={[
+                            styles.listContent,
+                            {
+                                paddingBottom:
+                                    insets.bottom + 90
+                            }
+                        ]}
                     showsVerticalScrollIndicator={false}
                     ListEmptyComponent={
                         <Text style={styles.emptyText}>No tasks found.</Text>
@@ -268,7 +273,12 @@ export default function TasksPage() {
 
             {/* 🚀 FIX 2: Revert to standard bottom spacing. ScreenContainer already protects it from the nav bar */}
             <TouchableOpacity
-                style={[styles.fab, { bottom: 25 }]}
+                style={[
+                    styles.fab,
+                    {
+                        bottom: Math.max(insets.bottom + 16, 25)
+                    }
+                ]}
                 onPress={() => router.push('/add-task')}
             >
                 <Ionicons name="add" size={30} color="white" />
@@ -284,12 +294,20 @@ const styles = StyleSheet.create({
     /* Updated Pill Tabs Styling */
     tabBarContainer: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#E0E0E0', backgroundColor: '#F5F9FF' },
     tabBar: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
-    tabButton: { flex: 1, paddingVertical: 15, alignItems: 'center' },
+    tabButton: {
+        flex: 1, paddingVertical: 15, alignItems: 'center', minHeight: 52, justifyContent: 'center' },
     activeTabButton: { borderBottomWidth: 3, borderBottomColor: '#2F80ED' },
     tabText: { fontSize: 16, color: '#999', fontWeight: '500' },
     activeTabText: { color: '#2F80ED' },
     /* Card Listing Styling */
-    listContent: { padding: 16 },
+    listContent: {
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: 16,
+        maxWidth: 700,
+        width: '100%',
+        alignSelf: 'center'
+    },
     card: { borderRadius: 16, padding: 20, marginBottom: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5 },
     cardTitle: { fontSize: 18, fontWeight: '800', color: '#1E293B', marginBottom: 4 },
     cardDescription: { fontSize: 14, color: '#64748B', lineHeight: 20, marginBottom: 16 },
@@ -304,9 +322,9 @@ const styles = StyleSheet.create({
 
     /* Card Footer Row */
     cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)' },
-    priorityBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    priorityBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, flexShrink: 1 },
     priorityText: { fontSize: 12, fontWeight: '700', marginLeft: 4 },
-    dateBadge: { flexDirection: 'row', alignItems: 'center' },
+    dateBadge: { flexDirection: 'row', alignItems: 'center', marginLeft: 10 },
     dateText: { marginLeft: 6, color: '#64748B', fontSize: 13, fontWeight: '600' },
 
     /* Floating Action Button */
@@ -315,5 +333,9 @@ const styles = StyleSheet.create({
         width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center',
         elevation: 5, shadowColor: '#2F80ED', shadowOpacity: 0.4, shadowRadius: 10
     },
-    emptyText: { textAlign: 'center', marginTop: 100, color: '#94A3B8', fontSize: 16, fontWeight: '500' }
+    emptyText: { textAlign: 'center', marginTop: 100, color: '#94A3B8', fontSize: 16, fontWeight: '500' },
+    shadowOffset: {
+        width: 0,
+        height: 4
+    }
 });

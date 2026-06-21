@@ -1,15 +1,22 @@
 import React from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-/**
- * Consistent safe-area wrapper for screens.
- * Use edges={['bottom']} for drawer screens that already have a navigation header.
- * Use edges={['top', 'bottom']} (default) for full-screen stack/modal screens.
- */
-export default function ScreenContainer({ children, style, edges = ['top', 'bottom'] }) {
+export default function ScreenContainer({ children, style }) {
+    const insets = useSafeAreaInsets();
+
     return (
-        <SafeAreaView style={[{ flex: 1, backgroundColor: '#FFFFFF' }, style]} edges={edges}>
+        <View
+            style={[
+                {
+                    flex: 1,
+                    backgroundColor: '#fff',
+                    paddingTop: insets.top * 0.5, // reduce effect here
+                },
+                style,
+            ]}
+        >
             {children}
-        </SafeAreaView>
+        </View>
     );
 }

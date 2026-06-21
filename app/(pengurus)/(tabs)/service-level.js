@@ -12,9 +12,11 @@ import { useRouter } from 'expo-router';
 import { db } from '../../../firebaseConfig';
 import { collection, onSnapshot } from 'firebase/firestore';
 import ScreenContainer from '../../../components/ScreenContainer';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function ServiceLevelScreen() {
     const router = useRouter();
+    const insets = useSafeAreaInsets();
     const [sections, setSections] = useState([]);
     const [loading, setLoading] = useState(true);
     const [totalCategories, setTotalCategories] = useState(0);
@@ -122,7 +124,7 @@ export default function ServiceLevelScreen() {
 
     return (
         // 🚀 FIX 1: Removed the double `<View>` wrapper so ScreenContainer works properly
-        <ScreenContainer style={styles.container}>
+        <ScreenContainer edges={['top']}>
             <View style={styles.content}>
                 <Text style={styles.totalText}>Total {totalCategories} Categories</Text>
 
@@ -134,14 +136,21 @@ export default function ServiceLevelScreen() {
                     stickySectionHeadersEnabled={false}
                     showsVerticalScrollIndicator={false}
                     // 🚀 FIX 2: Replaced the missing styles.listContent with a clean inline style
-                    contentContainerStyle={{ paddingBottom: 100 }}
+                    contentContainerStyle={{
+                        paddingBottom: 70
+                    }}
                     ListEmptyComponent={<Text style={styles.emptyText}>No categories found.</Text>}
                 />
             </View>
 
             {/* 🚀 FIX 3: Pointed to the updated styles.fab below */}
             <TouchableOpacity
-                style={styles.fab}
+                style={[
+                    styles.fab,
+                    {
+                        bottom: Math.max(insets.bottom + 16, 25),
+                    },
+                ]}
                 onPress={() => router.push('/add-category')}
             >
                 <Ionicons name="add" size={30} color="white" />
@@ -152,19 +161,18 @@ export default function ServiceLevelScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
-    content: { flex: 1 },
+    content: { flex: 1, paddingHorizontal: 5 },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    totalText: { fontSize: 14, color: '#666', paddingHorizontal: 20, paddingVertical: 10 },
-    sectionHeader: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, paddingHorizontal: 20 },
+    totalText: { fontSize: 14, color: '#666', paddingVertical: 10 },
+    sectionHeader: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, paddingHorizontal: 16 },
     sectionIcon: { marginRight: 10 },
     sectionHeaderText: { fontSize: 20, fontWeight: '600', color: '#333' },
-    itemContainer: { paddingVertical: 18, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
+    itemContainer: { paddingVertical: 18, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
     itemText: { fontSize: 16, color: '#333' },
     emptyText: { textAlign: 'center', marginTop: 50, color: '#999' },
     fab: {
         position: 'absolute',
         right: 20,
-        bottom: 25, // 🚀 Cleanly set to 25 here instead of inline
         backgroundColor: '#2F80ED',
         width: 56,
         height: 56,
