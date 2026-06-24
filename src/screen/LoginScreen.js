@@ -24,22 +24,6 @@ import { loginUser } from '../service/AuthService';
 
 const { height } = Dimensions.get('window');
 
-useEffect(() => {
-
-    const loadRememberMe = async () => {
-
-        const value = await AsyncStorage.getItem('rememberMe');
-
-        if (value === 'true') {
-            setRememberMe(true);
-        }
-
-    };
-
-    loadRememberMe();
-
-}, []);
-
 export default function LoginScreen() {
     const { setUserData } = useUser();
     const [email, setEmail] = useState('');
@@ -47,6 +31,16 @@ export default function LoginScreen() {
     const [isPasswordVisible, setPasswordVisible] = useState(false);
     const [loading, setLoading] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+
+    useEffect(() => {
+        const loadRememberMe = async () => {
+            const value = await AsyncStorage.getItem('rememberMe');
+            if (value === 'true') {
+                setRememberMe(true);
+            }
+        };
+        loadRememberMe();
+    }, []);
 
     const handleLogin = async () => {
         if (!email || !password) {

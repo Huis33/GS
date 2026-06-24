@@ -1,11 +1,12 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { signOut } from 'firebase/auth';
-import { auth } from '../firebaseConfig';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import ScreenContainer from '../components/ScreenContainer';
-
+import { auth } from '../firebaseConfig';
 export default function LogoutConfirm() {
     const confirmLogout = async () => {
+        await AsyncStorage.setItem('rememberMe', 'false');
         await signOut(auth);
         router.replace('/');
     };
