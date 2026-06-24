@@ -1,12 +1,12 @@
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+// 🚀 1. Import initializeAuth, getReactNativePersistence, and getAuth
+import { getAuth, getReactNativePersistence, initializeAuth } from "firebase/auth";
+// 🚀 2. Import AsyncStorage
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
     apiKey: "AIzaSyBe8TDTKXcE1a8IysJbsHGlNeLFHJoGweE",
     authDomain: "gaiascience-f0caf.firebaseapp.com",
@@ -20,6 +20,18 @@ const firebaseConfig = {
 // Initialize App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Services
-export const auth = getAuth(app);
+// 🚀 3. Initialize Auth safely with AsyncStorage
+let auth;
+if (getApps().length === 0) {
+    // If it's a fresh start, initialize with persistence
+    auth = initializeAuth(app, {
+        persistence: getReactNativePersistence(ReactNativeAsyncStorage)
+    });
+} else {
+    // If it's a hot-reload, grab the already initialized auth
+    auth = getAuth(app);
+}
+
+// Initialize Database
 export const db = getFirestore(app);
+export { auth };
