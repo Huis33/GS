@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient'; // 🚀 IMPORT LINEAR GRADIENT
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -23,6 +23,22 @@ import { useUser } from '../context/UserContext';
 import { loginUser } from '../service/AuthService';
 
 const { height } = Dimensions.get('window');
+
+useEffect(() => {
+
+    const loadRememberMe = async () => {
+
+        const value = await AsyncStorage.getItem('rememberMe');
+
+        if (value === 'true') {
+            setRememberMe(true);
+        }
+
+    };
+
+    loadRememberMe();
+
+}, []);
 
 export default function LoginScreen() {
     const { setUserData } = useUser();
