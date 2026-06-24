@@ -285,8 +285,8 @@ export default function EditTaskScreen() {
                                 style={[styles.input, styles.textArea, { color: '#000' }]}
                                 placeholder="Task Description"
                                 placeholderTextColor="#888888"
-                                value={taskDescription}
-                                onChangeText={setTaskDescription}
+                                value={description}
+                                onChangeText={setDescription}
                                 multiline
                                 numberOfLines={4}
                             />

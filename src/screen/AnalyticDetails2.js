@@ -90,7 +90,12 @@ export default function CoordinatorDetails() {
                 <Text style={styles.sectionTitle}>Tasks Managed</Text>
                 {tasks.length > 0 ? (
                     tasks.map(task => (
-                        <View key={task.id} style={styles.taskCard}>
+                        <TouchableOpacity
+                            key={task.id}
+                            style={styles.taskCard}
+                            onPress={() => router.push({ pathname: '/task-detail', params: { id: task.id } })} // 🚀 Added Navigation
+                            activeOpacity={0.8}
+                        >
                             <View style={styles.dateRow}>
                                 <Ionicons name="calendar-outline" size={14} color="#666" />
                                 <Text style={styles.dateText}>{task.formattedDate}</Text>
@@ -100,7 +105,7 @@ export default function CoordinatorDetails() {
                             <View style={[styles.badge, { backgroundColor: task.status === 'Done' ? '#C8E6C9' : '#FFF9C4' }]}>
                                 <Text style={styles.badgeText}>{task.status}</Text>
                             </View>
-                        </View>
+                        </TouchableOpacity>
                     ))
                 ) : (
                     <Text style={styles.emptyText}>No tasks found for this coordinator.</Text>
