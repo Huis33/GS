@@ -13,9 +13,9 @@ import {
 import ScreenContainer from '../../components/ScreenContainer';
 
 // 1. IMPORT CENTRALIZED UTILITIES & THEME
-import { COLORS, PRIORITY_CONFIG } from '../../constants/theme'; //[cite: 1]
+import { COLORS, PRIORITY_CONFIG } from '../../constants/theme';
 import { auth, db } from '../../firebaseConfig';
-import { getStatusStyles } from '../service/statusService'; //[cite: 1]
+import { getStatusStyles } from '../service/statusService';
 import { saveAndShareFile } from '../utils/fileDownloader';
 import { generateTaskHtml } from '../utils/pdfGenerator';
 
@@ -24,11 +24,9 @@ export default function TaskDetailsScreen() {
     const { id } = useLocalSearchParams();
     const [task, setTask] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [downloading, setDownloading] = useState(false);
 
-    // 🚀 FIX: Use optional chaining and trim/toLowerCase to ensure strict matching
-    const isOwner = auth.currentUser?.uid && task?.createdBy &&
-        auth.currentUser.uid.trim() === task.createdBy.trim();
-
+    const isOwner = auth.currentUser?.uid === task?.createdBy;
     const canExport = true;
     const isTaskDone = task?.status === 'Done';
     const canEdit = isOwner && !isTaskDone;
@@ -56,14 +54,12 @@ export default function TaskDetailsScreen() {
             const docRef = doc(db, 'task', id);
             const docSnap = await getDoc(docRef);
 
-            // Only update state if the component is still in focus
             if (isMounted && docSnap.exists()) {
                 setTask(docSnap.data());
             }
         } catch (error) {
             console.error("Error fetching task:", error);
         } finally {
-            // Check mount status before stopping the loader
             if (isMounted) {
                 setLoading(false);
             }
@@ -72,21 +68,19 @@ export default function TaskDetailsScreen() {
 
     useFocusEffect(
         useCallback(() => {
-            let isMounted = true; // Flag for current focus cycle[cite: 1]
-
+            let isMounted = true;
             if (id) {
                 fetchTaskDetails(isMounted);
             }
-
-            // Cleanup function: runs when the screen loses focus or unmounts[cite: 1]
             return () => {
                 isMounted = false;
             };
         }, [id])
     );
+
     const handleExportPDF = async () => {
         try {
-            setLoading(true);
+            setDownloading(true);
             const htmlContent = generateTaskHtml(task, id, formatDateTime);
             const { uri } = await Print.printToFileAsync({ html: htmlContent });
             const fileName = `Report_${task.name.replace(/\s+/g, '_')}.pdf`;
@@ -94,36 +88,85 @@ export default function TaskDetailsScreen() {
         } catch (error) {
             Alert.alert("Error", "Failed to generate PDF report.");
         } finally {
-            setLoading(false);
+            setDownloading(false);
         }
     };
 
-    const handleDownload = async () => {
-        if (!task.attachedFile) return Alert.alert("Error", "No file attached.");
+    // 🚀 FIXED: Rewritten handleDownload to accept the exact file map shape from Firestore
+    const handleDownload = async (fileObj) => {
+        const targetUrl = typeof fileObj === 'string' ? fileObj : fileObj?.url;
+        const targetName = fileObj?.name || '';
+        let targetType = fileObj?.type || '';
+
+        if (!targetUrl) {
+            return Alert.alert("Error", "No file resource found.");
+        }
+
+        if (targetUrl.startsWith('file://') || targetUrl.startsWith('content://')) {
+            return Alert.alert(
+                "Database Error",
+                "This file points to a non-existent local device path."
+            );
+        }
+
         try {
             if (Platform.OS === 'web') {
-                window.open(task.attachedFile, '_blank');
+                window.open(targetUrl, '_blank');
                 return;
             }
-            setLoading(true);
+            setDownloading(true);
 
-            // 1. Dynamically extract the extension from the URL (defaults to 'pdf' if it can't find one)
-            const fileExtension = task.attachedFile.split('?')[0].split('.').pop() || 'pdf';
+            // 1. Clean out query parameters and lowercase the URL for matching
+            const cleanUrl = targetUrl.split('?')[0].toLowerCase();
+            const lowerName = targetName.toLowerCase();
+            const lowerType = targetType.toLowerCase();
 
-            // 2. Generate the filename with the correct extension
-            const fileName = `Task_${id.substring(0, 5)}.${fileExtension}`;
+            let fileExtension = '';
+
+            // 2. FORCE IMAGE OVERRIDE: If anything indicates it's an image, force it.
+            if (cleanUrl.includes('.png') || lowerName.includes('.png') || lowerType.includes('png')) {
+                fileExtension = 'png';
+            } else if (cleanUrl.includes('.jpg') || cleanUrl.includes('.jpeg') || lowerName.includes('.jpg') || lowerName.includes('.jpeg') || lowerType.includes('jpg') || lowerType.includes('jpeg')) {
+                fileExtension = 'jpg';
+            } else if (cleanUrl.includes('.webp') || lowerName.includes('.webp')) {
+                fileExtension = 'webp';
+            } else {
+                // 3. Fallback to normal parsing if it's not an obvious image
+                const decodedUrl = decodeURIComponent(cleanUrl);
+                const urlFilename = decodedUrl.substring(decodedUrl.lastIndexOf('/') + 1);
+                const extractedExt = urlFilename.includes('.') ? urlFilename.split('.').pop() : '';
+
+                if (extractedExt && extractedExt.length >= 2 && extractedExt.length <= 4) {
+                    fileExtension = extractedExt;
+                } else if (targetName && targetName.includes('.')) {
+                    fileExtension = targetName.split('.').pop()?.toLowerCase().trim() || 'pdf';
+                } else {
+                    fileExtension = targetType.includes('/') ? targetType.split('/').pop()?.toLowerCase().trim() : targetType.toLowerCase().trim() || 'pdf';
+                }
+            }
+
+            // Fallback safety check
+            if (!fileExtension || fileExtension.length > 4) {
+                fileExtension = 'pdf';
+            }
+
+            // 4. Construct safe filename structures
+            let baseName = targetName ? targetName.replace(/\.[^/.]+$/, "") : `Attachment_${id.substring(0, 5)}`;
+            baseName = baseName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+
+            const fileName = `${baseName}_${Date.now()}.${fileExtension}`;
             const tempUri = `${FileSystem.cacheDirectory}${fileName}`;
 
-            // 3. Download and share
-            const downloadResumable = FileSystem.createDownloadResumable(task.attachedFile, tempUri);
+            // 5. Download execution
+            const downloadResumable = FileSystem.createDownloadResumable(targetUrl, tempUri);
             const { uri } = await downloadResumable.downloadAsync();
 
             await saveAndShareFile(uri, fileName);
         } catch (error) {
-            console.error("Download error: ", error); // Good for debugging
+            console.error("Download error: ", error);
             Alert.alert("Error", "Failed to process download.");
         } finally {
-            setLoading(false);
+            setDownloading(false);
         }
     };
 
@@ -143,6 +186,13 @@ export default function TaskDetailsScreen() {
     return (
         <ScreenContainer style={styles.container}>
             <StatusBar barStyle="dark-content" />
+
+            {downloading && (
+                <View style={styles.overlayLoader}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
+            )}
+
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={26} color={COLORS.textDark} />
@@ -150,7 +200,6 @@ export default function TaskDetailsScreen() {
 
                 <Text style={styles.headerTitle}>Task Details</Text>
 
-                {/* CHANGE THIS: Use canEdit instead of isOwner */}
                 {canEdit ? (
                     <TouchableOpacity onPress={() => router.push({ pathname: '/edit-task', params: { id: id } })}>
                         <Ionicons name="create-outline" size={26} color={COLORS.primary} />
@@ -170,8 +219,17 @@ export default function TaskDetailsScreen() {
                         <Text style={[styles.priorityText, { color: priorityStyle.text }]}>{task.priority}</Text>
                     </View>
                     <View style={styles.dateInfo}>
-                        <Text style={styles.dateLabel}>Due: <Text style={styles.dateValue}>{formatDateTime(task.dueDate)}</Text></Text>
-                        <Text style={styles.dateLabel}>Created: <Text style={styles.dateValue}>{formatDate(task.createdDate)}</Text></Text>
+                        {task.startDate && (
+                            <Text style={[styles.dateLabel, { marginBottom: 2 }]}>
+                                Start: <Text style={styles.dateValue}>{formatDateTime(task.startDate)}</Text>
+                            </Text>
+                        )}
+                        <Text style={styles.dateLabel}>
+                            Due: <Text style={styles.dateValue}>{formatDateTime(task.dueDate)}</Text>
+                        </Text>
+                        <Text style={[styles.dateLabel, { marginTop: 2, fontSize: 11 }]}>
+                            Created: <Text style={styles.dateValue}>{formatDate(task.createdDate)}</Text>
+                        </Text>
                     </View>
                 </View>
 
@@ -202,21 +260,54 @@ export default function TaskDetailsScreen() {
                     )) || <Text style={styles.noAssignment}>No one assigned yet</Text>}
                 </View>
 
+                {/* 🚀 FIXED ATTACHMENTS VIEW BLOCK WITH STRICT SCHEMA SENSITIVITY */}
                 <View style={styles.attachmentSection}>
                     <Text style={styles.sectionTitle}>Attachments</Text>
-                    {task.attachedFile ? (
-                        <TouchableOpacity style={styles.attachmentCard} onPress={handleDownload}>
+
+                    {task.attachedFiles && Array.isArray(task.attachedFiles) && task.attachedFiles.length > 0 ? (
+                        task.attachedFiles.map((file, index) => {
+                            if (!file || !file.url) return null;
+
+                            // Dynamically set correct icons
+                            const isImage = ['jpg', 'jpeg', 'png', 'webp'].includes(file.type?.toLowerCase() || file.name?.split('.').pop()?.toLowerCase());
+                            const iconName = isImage ? "image-outline" : "document-text-outline";
+
+                            return (
+                                <TouchableOpacity
+                                    key={index}
+                                    style={styles.attachmentCard}
+                                    onPress={() => handleDownload(file)} // 👈 Pass full object map
+                                    disabled={downloading}
+                                >
+                                    <View style={styles.attachmentInfo}>
+                                        <Ionicons name={iconName} size={24} color={COLORS.primary} />
+                                        <Text style={styles.fileName} numberOfLines={1}>
+                                            {file.name || `Attachment ${index + 1}`}
+                                        </Text>
+                                    </View>
+                                    <Ionicons name="download-outline" size={24} color={COLORS.textGray} />
+                                </TouchableOpacity>
+                            );
+                        })
+                    ) : task.attachedFile && typeof task.attachedFile === 'string' && task.attachedFile.trim() !== '' ? (
+                        <TouchableOpacity
+                            style={styles.attachmentCard}
+                            onPress={() => handleDownload({ url: task.attachedFile, name: 'Attachment.png' })} // 🚀 Wrap in object container shape safely
+                            disabled={downloading}
+                        >
                             <View style={styles.attachmentInfo}>
-                                <Ionicons name="document-text" size={24} color={COLORS.primary} />
-                                <Text style={styles.fileName}>Task Attachment</Text>
+                                <Ionicons name="image-outline" size={24} color={COLORS.primary} />
+                                <Text style={styles.fileName}>Task Attachment (Legacy)</Text>
                             </View>
                             <Ionicons name="download-outline" size={24} color={COLORS.textGray} />
                         </TouchableOpacity>
-                    ) : <Text style={styles.noAssignment}>No files attached.</Text>}
+                    ) : (
+                        <Text style={styles.noAssignment}>No files attached.</Text>
+                    )}
                 </View>
 
                 {canExport && (
-                    <TouchableOpacity style={styles.savePdfButton} onPress={handleExportPDF}>
+                    <TouchableOpacity style={styles.savePdfButton} onPress={handleExportPDF} disabled={downloading}>
                         <Ionicons name="document-text-outline" size={20} color={COLORS.white} />
                         <Text style={styles.savePdfButtonText}>Save as PDF Report</Text>
                     </TouchableOpacity>
@@ -271,5 +362,12 @@ const styles = StyleSheet.create({
     attachmentInfo: { flexDirection: 'row', alignItems: 'center' },
     fileName: { marginLeft: 10, fontSize: 16, color: COLORS.textDark, fontWeight: '500' },
     savePdfButton: { backgroundColor: COLORS.success, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, marginTop: 10, marginBottom: 30 },
-    savePdfButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold', marginLeft: 10 }
+    savePdfButtonText: { color: COLORS.white, fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
+    overlayLoader: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 999
+    }
 });
