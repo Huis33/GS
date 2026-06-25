@@ -29,10 +29,10 @@ export default function AuthLoadingScreen() {
                     router.replace('/login');
                 }
             } else {
+                // Not remembered or no user — go to login
                 if (user) {
                     await signOut(auth);
                 }
-                // Not logged in or NOT remembered, go to login
                 router.replace('/login');
             }
         });
@@ -45,4 +45,4 @@ export default function AuthLoadingScreen() {
             <ActivityIndicator size="large" color="#1A3668" />
         </View>
     );
-}
+}

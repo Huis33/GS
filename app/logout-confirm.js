@@ -4,9 +4,12 @@ import { signOut } from 'firebase/auth';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import ScreenContainer from '../components/ScreenContainer';
 import { auth } from '../firebaseConfig';
+import { useUser } from '../src/context/UserContext';
 export default function LogoutConfirm() {
+    const { setUserData } = useUser();
     const confirmLogout = async () => {
         await AsyncStorage.setItem('rememberMe', 'false');
+        setUserData(null); // Clear context immediately so _layout guard redirects
         await signOut(auth);
         router.replace('/');
     };

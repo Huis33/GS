@@ -17,8 +17,11 @@ export const UserProvider = ({ children }) => {
         const setup = async () => {
             // 1. Check rememberMe BEFORE subscribing to auth changes
             const rememberMe = await AsyncStorage.getItem('rememberMe');
+            console.log('[UserProvider] rememberMe =', rememberMe, '| auth.currentUser =', auth.currentUser?.uid || null);
+
             if (auth.currentUser && rememberMe !== 'true') {
                 // User didn't ask to be remembered — sign them out first
+                console.log('[UserProvider] Signing out — rememberMe is not true');
                 await signOut(auth);
             }
 
@@ -28,13 +31,28 @@ export const UserProvider = ({ children }) => {
             unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
                 if (!isMounted) return;
                 setIsLoading(true);
+                console.log('[UserProvider] onAuthStateChanged fired. user =', firebaseUser?.uid || null);
 
                 if (firebaseUser) {
+                    // Re-check rememberMe here — the setup() check may have missed
+                    // because auth.currentUser was null before Firebase restored the session
+                    const rememberMeNow = await AsyncStorage.getItem('rememberMe');
+                    console.log('[UserProvider] rememberMe (in listener) =', rememberMeNow);
+
+                    if (rememberMeNow !== 'true') {
+                        // User logged out but Firebase restored session from persistence
+                        console.log('[UserProvider] rememberMe is not true — signing out restored session');
+                        await signOut(auth);
+                        // signOut will trigger this listener again with null user
+                        return;
+                    }
+
                     try {
                         const docRef = doc(db, "user", firebaseUser.uid);
                         const docSnap = await getDoc(docRef);
                         if (!isMounted) return;
                         if (docSnap.exists()) {
+                            console.log('[UserProvider] userData set for role:', docSnap.data().role);
                             setUserData({ ...docSnap.data(), uid: firebaseUser.uid });
                         } else {
                             setUserData(null);
@@ -45,6 +63,7 @@ export const UserProvider = ({ children }) => {
                         setUserData(null);
                     }
                 } else {
+                    console.log('[UserProvider] No user — setting userData to null');
                     setUserData(null);
                 }
                 setIsLoading(false);

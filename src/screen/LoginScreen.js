@@ -51,8 +51,10 @@ export default function LoginScreen() {
         setLoading(true);
 
         try {
-            const result = await loginUser(email, password);
+            // Save rememberMe FIRST — UserProvider's onAuthStateChanged checks this
+            // immediately when loginUser triggers a sign-in event
             await AsyncStorage.setItem('rememberMe', rememberMe ? 'true' : 'false');
+            const result = await loginUser(email, password);
             setUserData(result);
             setLoading(false);
         } catch (error) {

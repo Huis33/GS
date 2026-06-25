@@ -20,15 +20,15 @@ const firebaseConfig = {
 // Initialize App
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// 🚀 3. Initialize Auth safely with AsyncStorage
+// 🚀 3. Initialize Auth safely with AsyncStorage persistence
 let auth;
-if (getApps().length === 0) {
-    // If it's a fresh start, initialize with persistence
+try {
+    // Try to initialize with AsyncStorage persistence (first app start)
     auth = initializeAuth(app, {
         persistence: getReactNativePersistence(ReactNativeAsyncStorage)
     });
-} else {
-    // If it's a hot-reload, grab the already initialized auth
+} catch (e) {
+    // If already initialized (e.g. hot-reload), grab existing instance
     auth = getAuth(app);
 }
 
