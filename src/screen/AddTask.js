@@ -6,9 +6,7 @@ import { addDoc, collection, getDocs, Timestamp } from 'firebase/firestore';
 import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator, Alert,
-    Keyboard,
-    KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar,
+    ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar,
     StyleSheet, Text, TextInput, TouchableOpacity, View
 } from 'react-native';
 import ScreenContainer from '../../components/ScreenContainer';
@@ -21,7 +19,6 @@ export default function NewTaskScreen() {
     const navigation = useNavigation();
     const isDirtyRef = useRef(false);
     const {userData} = useUser();
-
     // --- FORM STATES ---
     const [taskName, setTaskName] = useState('');
     const [description, setDescription] = useState('');
@@ -29,7 +26,6 @@ export default function NewTaskScreen() {
     const [contact, setContact] = useState('');
     const [location, setLocation] = useState(''); // Changed to text input
     const [selectedPDF, setSelectedPDF] = useState(null);
-
     // Dynamic Data States
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
@@ -37,6 +33,7 @@ export default function NewTaskScreen() {
     const [engineers, setEngineers] = useState([]);
     const [assignedTo, setAssignedTo] = useState([]);
     const [isEngineerModalVisible, setEngineerModalVisible] = useState(false);
+    const [attachments, setAttachments] = useState([]);
 
     const [dueDate, setDueDate] = useState(() => {
         const d = new Date();
@@ -45,6 +42,23 @@ export default function NewTaskScreen() {
     });
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [pickerMode, setPickerMode] = useState('date');
+
+    const [startDate, setStartDate] = useState(new Date());
+    const handleStartDateChange = (event, selectedDate) => {
+        if (event.type === 'dismissed') return;
+        const currentDate = selectedDate || startDate;
+        setStartDate(currentDate);
+
+        // Auto-open time picker on Android if needed
+        if (Platform.OS === 'android') {
+            DateTimePickerAndroid.open({
+                value: currentDate,
+                mode: 'time',
+                is24Hour: true,
+                onChange: (e, sDate) => sDate && setStartDate(sDate),
+            });
+        }
+    };
 
     const handleDatePickerChange = (event, selectedDate) => {
         if (event.type === 'dismissed') return;
@@ -191,14 +205,17 @@ export default function NewTaskScreen() {
         location, selectedCategory, assignedTo, selectedPDF
     ]);
 
-    const handleUploadPDF = async () => {
+    const handleUploadAttachments = async () => {
         try {
             const result = await DocumentPicker.getDocumentAsync({
-                type: 'application/pdf',
+                type: '*/*', // Allows PDFs, Images, Word Docs, etc.
+                multiple: true, // Allows selecting more than one file
                 copyToCacheDirectory: true,
             });
+
             if (!result.canceled) {
-                setSelectedPDF(result.assets[0]);
+                // DocumentPicker returns an array in result.assets
+                setAttachments((prev) => [...prev, ...result.assets]);
             }
         } catch (error) {
             Alert.alert("Error", "Could not access storage.");
@@ -248,25 +265,36 @@ export default function NewTaskScreen() {
         setLoading(true);
         try {
             const currentUser = auth.currentUser;
-            let firebaseUrl = "";
-    
-            // --- NEW UPLOAD LOGIC START ---
-            if (selectedPDF) {
-                // A. Convert URI to Blob (Necessary for Expo/React Native)
-                const response = await fetch(selectedPDF.uri);
-                const blob = await response.blob();
-                // B. Create a storage reference
-                const storage = getStorage();
-                const fileExtension = selectedPDF.name.split('.').pop();
-                const fileName = `attachments/${Date.now()}.${fileExtension}`;
-                const storageRef = ref(storage, fileName);
-                // C. Upload the file
-                const snapshot = await uploadBytes(storageRef, blob);
-                // D. Get the public Download URL
-                firebaseUrl = await getDownloadURL(snapshot.ref);
+            let uploadedFileUrls = []; // Array to hold all download URLs
+
+            // --- MULTI-FILE UPLOAD LOGIC START ---
+            if (attachments.length > 0) {
+                // Loop through each selected file using a for...of loop to handle async sequential uploads safely
+                for (const file of attachments) {
+                    const response = await fetch(file.uri);
+                    const blob = await response.blob();
+
+                    const storage = getStorage();
+                    // Fallback to 'bin' or extract extension safely
+                    const fileExtension = file.name.split('.').pop() || 'bin';
+
+                    // Group files in a folder named by timestamp to prevent overwrites
+                    const fileName = `attachments/${Date.now()}_${file.name}`;
+                    const storageRef = ref(storage, fileName);
+
+                    const snapshot = await uploadBytes(storageRef, blob);
+                    const firebaseUrl = await getDownloadURL(snapshot.ref);
+
+                    // Push the metadata or just the link. It's helpful to save the name too!
+                    uploadedFileUrls.push({
+                        name: file.name,
+                        url: firebaseUrl,
+                        type: fileExtension.toLowerCase()
+                    });
+                }
             }
-            // --- NEW UPLOAD LOGIC END ---
-    
+            // --- MULTI-FILE UPLOAD LOGIC END ---
+
             const newTask = {
                 name: taskName,
                 taskDescription: description,
@@ -275,22 +303,25 @@ export default function NewTaskScreen() {
                 contactNo: contact,
                 categoryName: selectedCategory.categoryName,
                 priority: selectedCategory.category,
+                startDate: Timestamp.fromDate(startDate),
                 dueDate: Timestamp.fromDate(dueDate),
                 status: assignedTo.length > 0 ? "Not Yet Started" : "Not Yet Assigned",
                 assignedTo: assignedTo.map(e => e.name),
                 assignedIds: assignedTo.map(e => e.id),
-                hasAttachment: !!selectedPDF,
-                // UPDATE: Use the firebaseUrl instead of selectedPDF.uri
-                attachedFile: firebaseUrl, 
+                // Changed fields to accommodate multiple items
+                hasAttachment: attachments.length > 0,
+                attachedFiles: uploadedFileUrls, // Saves array of objects [{name, url, type}, ...]
                 createdDate: Timestamp.now(),
                 createdBy: currentUser?.uid || "Anonymous",
                 creatorName: userData?.name || userData?.username || "System User",
             };
-    
+
             await addDoc(collection(db, 'task'), newTask);
-            
+
             Alert.alert("Success", "Task created successfully!");
             isDirtyRef.current = false;
+            // Clear attachments array on success
+            setAttachments([]);
             router.back();
         } catch (error) {
             Alert.alert("Error", "Failed to save task.");
@@ -417,24 +448,45 @@ export default function NewTaskScreen() {
 
                         {/* Section: Split Date & Time */}
                         <View style={styles.inputGroup}>
-                            <Text style={styles.label}>Due Date & Time</Text>
-                            <View style={styles.row}>
-                                {/* Date Input */}
+                            <Text style={styles.label}>Timeline</Text>
+
+                            {/* Start Date & Time Row */}
+                            <Text style={[styles.label, { fontSize: 12, color: '#64748B' }]}>Start Date & Time</Text>
+                            <View style={[styles.row, { marginBottom: 12 }]}>
                                 <TouchableOpacity
                                     style={[styles.inputWithIcon, { flex: 1, marginRight: 8 }]}
-                                    onPress={() => openPicker('date')}
+                                    onPress={() => {
+                                        if (Platform.OS === 'android') {
+                                            DateTimePickerAndroid.open({ value: startDate, mode: 'date', onChange: handleStartDateChange });
+                                        }
+                                    }}
                                 >
                                     <Ionicons name="calendar-outline" size={18} color="#6389DA" />
-                                    <Text style={styles.flexInputText}>
-                                        {dueDate.toLocaleDateString()}
-                                    </Text>
+                                    <Text style={styles.flexInputText}>{startDate.toLocaleDateString()}</Text>
                                 </TouchableOpacity>
-
-                                {/* Time Input */}
                                 <TouchableOpacity
                                     style={[styles.inputWithIcon, { flex: 1, marginLeft: 8 }]}
-                                    onPress={() => openPicker('time')}
+                                    onPress={() => {
+                                        if (Platform.OS === 'android') {
+                                            DateTimePickerAndroid.open({ value: startDate, mode: 'time', is24Hour: true, onChange: handleStartDateChange });
+                                        }
+                                    }}
                                 >
+                                    <Ionicons name="time-outline" size={18} color="#6389DA" />
+                                    <Text style={styles.flexInputText}>
+                                        {startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Due Date & Time Row */}
+                            <Text style={[styles.label, { fontSize: 12, color: '#64748B' }]}>Due Date & Time</Text>
+                            <View style={styles.row}>
+                                <TouchableOpacity style={[styles.inputWithIcon, { flex: 1, marginRight: 8 }]} onPress={() => openPicker('date')}>
+                                    <Ionicons name="calendar-outline" size={18} color="#6389DA" />
+                                    <Text style={styles.flexInputText}>{dueDate.toLocaleDateString()}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.inputWithIcon, { flex: 1, marginLeft: 8 }]} onPress={() => openPicker('time')}>
                                     <Ionicons name="time-outline" size={18} color="#6389DA" />
                                     <Text style={styles.flexInputText}>
                                         {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -470,12 +522,38 @@ export default function NewTaskScreen() {
                         </View>
                     </View>
 
-                    <TouchableOpacity style={styles.attachmentBtn} onPress={handleUploadPDF}>
+                    {/* File Picker Button */}
+                    <TouchableOpacity style={styles.attachmentBtn} onPress={handleUploadAttachments}>
                         <Ionicons name="document-attach-outline" size={20} color="#6389DA" />
                         <Text style={styles.attachmentBtnText}>
-                            {selectedPDF ? selectedPDF.name : "Attach Documentation (PDF)"}
+                            Attach Documents (PDF, Images, Docs)
                         </Text>
                     </TouchableOpacity>
+
+                    {/* List of selected files with a delete option */}
+                    {attachments.length > 0 && (
+                        <View style={{ marginTop: 12 }}>
+                            {attachments.map((file, index) => (
+                                <View key={index} style={styles.fileRow}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                        <Ionicons
+                                            name={file.name.endsWith('.pdf') ? "document-text-outline" : "image-outline"}
+                                            size={18}
+                                            color="#64748B"
+                                        />
+                                        <Text style={styles.fileNameText} numberOfLines={1}>
+                                            {file.name}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        onPress={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
+                                    >
+                                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                                    </TouchableOpacity>
+                                </View>
+                            ))}
+                        </View>
+                    )}
 
                     <View style={{ height: 40 }} />
                 </ScrollView>
@@ -679,4 +757,19 @@ const styles = StyleSheet.create({
     },
     confirmButton: { backgroundColor: '#6389DA', borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', },
     confirmButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700', },
+    fileRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#F1F5F9',
+        padding: 12,
+        borderRadius: 12,
+        marginBottom: 8,
+    },
+    fileNameText: {
+        marginLeft: 8,
+        fontSize: 14,
+        color: '#334155',
+        flex: 1,
+    },
 });

@@ -1,17 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import React, { useEffect, useState, useMemo } from 'react';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
-import { auth, db } from "../../firebaseConfig";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { auth, db } from "../../firebaseConfig";
 
 export default function ReadOnlyTasksPage() {
     const router = useRouter();
@@ -19,6 +20,7 @@ export default function ReadOnlyTasksPage() {
     const [taskList, setTaskList] = useState([]);
     const [loading, setLoading] = useState(true);
     const insets = useSafeAreaInsets();
+    const [searchQuery, setSearchQuery] = useState('');
 
     const PRIORITY_CONFIG = {
         'Critical': { bg: '#FDECEC', text: '#D32F2F', icon: 'alert-circle' },
@@ -62,7 +64,10 @@ export default function ReadOnlyTasksPage() {
     }, []);
 
     const displayedTasks = taskList.filter(task => {
-        return activeTab === 'Done' ? task.status === 'Done' : task.status !== 'Done';
+        const matchesTab = activeTab === 'Done' ? task.status === 'Done' : task.status !== 'Done';
+        const matchesSearch = task.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            task.taskDescription?.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesTab && matchesSearch;
     });
 
     const getStatusStyles = (item) => {
@@ -193,6 +198,18 @@ export default function ReadOnlyTasksPage() {
 
     return (
         <View style={styles.container}>
+            <View style={styles.searchContainer}>
+                <View style={styles.searchBar}>
+                    <TextInput
+                        placeholder="Search tasks..."
+                        placeholderTextColor="#888888"
+                        style={styles.searchInput}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                    <Ionicons name="search" size={20} color="#666" />
+                </View>
+            </View>
             <View style={styles.tabBar}>
                 <TouchableOpacity
                     onPress={() => setActiveTab('To be done')}
@@ -253,5 +270,26 @@ const styles = StyleSheet.create({
     statusBadge: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 },
     statusText: { fontSize: 12, fontWeight: '700' },
     emptyContainer: { alignItems: 'center', marginTop: 100 },
-    emptyText: { marginTop: 10, color: '#94A3B8', fontSize: 16, fontWeight: '500' }
+    emptyText: { marginTop: 10, color: '#94A3B8', fontSize: 16, fontWeight: '500' },
+    searchContainer: {
+        paddingHorizontal: 20,
+        marginBottom: 10,
+        marginTop: 10,
+        backgroundColor: '#FFF'
+    },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F1F4F9',
+        borderRadius: 25,
+        paddingHorizontal: 20,
+        height: 50,
+        borderWidth: 1,
+        borderColor: '#E0E0E0'
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 16,
+        color: '#333'
+    },
 });

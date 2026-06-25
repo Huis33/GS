@@ -1,21 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Print from 'expo-print';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import React, { useCallback, useState } from 'react';
 import {
-    Alert, Platform, ActivityIndicator, ScrollView, StatusBar,
+    ActivityIndicator,
+    Alert, Platform,
+    ScrollView, StatusBar,
     StyleSheet, Text, TouchableOpacity, View
 } from 'react-native';
 import ScreenContainer from '../../components/ScreenContainer';
-import * as Print from 'expo-print';
 
 // 1. IMPORT CENTRALIZED UTILITIES & THEME
-import { auth, db } from '../../firebaseConfig';
-import { generateTaskHtml } from '../utils/pdfGenerator';
-import { saveAndShareFile } from '../utils/fileDownloader';
 import { COLORS, PRIORITY_CONFIG } from '../../constants/theme'; //[cite: 1]
+import { auth, db } from '../../firebaseConfig';
 import { getStatusStyles } from '../service/statusService'; //[cite: 1]
+import { saveAndShareFile } from '../utils/fileDownloader';
+import { generateTaskHtml } from '../utils/pdfGenerator';
 
 export default function TaskDetailsScreen() {
     const router = useRouter();
@@ -103,12 +105,21 @@ export default function TaskDetailsScreen() {
                 return;
             }
             setLoading(true);
-            const fileName = `Task_${id.substring(0, 5)}.pdf`;
+
+            // 1. Dynamically extract the extension from the URL (defaults to 'pdf' if it can't find one)
+            const fileExtension = task.attachedFile.split('?')[0].split('.').pop() || 'pdf';
+
+            // 2. Generate the filename with the correct extension
+            const fileName = `Task_${id.substring(0, 5)}.${fileExtension}`;
             const tempUri = `${FileSystem.cacheDirectory}${fileName}`;
+
+            // 3. Download and share
             const downloadResumable = FileSystem.createDownloadResumable(task.attachedFile, tempUri);
             const { uri } = await downloadResumable.downloadAsync();
+
             await saveAndShareFile(uri, fileName);
         } catch (error) {
+            console.error("Download error: ", error); // Good for debugging
             Alert.alert("Error", "Failed to process download.");
         } finally {
             setLoading(false);

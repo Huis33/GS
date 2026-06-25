@@ -3,22 +3,9 @@ import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import * as DocumentPicker from 'expo-document-picker';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { collection, doc, getDoc, getDocs, Timestamp, updateDoc } from 'firebase/firestore';
+import { getDownloadURL, getStorage, ref, uploadBytes } from 'firebase/storage';
 import React, { useEffect, useRef, useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Keyboard,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
-} from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import ScreenContainer from '../../components/ScreenContainer';
 import { auth, db } from '../../firebaseConfig';
 import { useUser } from '../context/UserContext';
@@ -28,12 +15,9 @@ export default function EditTaskScreen() {
     const navigation = useNavigation();
     const { id } = useLocalSearchParams(); // Get the Task ID from router params
     const { userData } = useUser();
-
     const [loading, setLoading] = useState(true); // Loading the initial data
     const [updating, setUpdating] = useState(false); // Saving the changes
     const isDirtyRef = useRef(false);
-
-    // --- FORM STATES ---
     const [taskName, setTaskName] = useState('');
     const [description, setDescription] = useState('');
     const [customer, setCustomer] = useState('');
@@ -41,20 +25,20 @@ export default function EditTaskScreen() {
     const [location, setLocation] = useState('');
     const [selectedPDF, setSelectedPDF] = useState(null);
     const [existingPDFUrl, setExistingPDFUrl] = useState("");
-
-    // Dynamic Data States
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
     const [engineers, setEngineers] = useState([]);
     const [assignedTo, setAssignedTo] = useState([]);
     const [isEngineerModalVisible, setEngineerModalVisible] = useState(false);
+    const [startDate, setStartDate] = useState(new Date());
     const [dueDate, setDueDate] = useState(new Date());
     const [progress, setProgress] = useState(0);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [pickerMode, setPickerMode] = useState('date');
+    const [attachments, setAttachments] = useState([]);
+    const [existingData, setExistingData] = useState({});
 
-    // --- FETCH EXISTING TASK & SETUP DATA ---
     useEffect(() => {
         const fetchAllData = async () => {
             try {
@@ -62,40 +46,43 @@ export default function EditTaskScreen() {
                 const catSnap = await getDocs(collection(db, 'priority'));
                 const catList = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 setCategories(catList);
-                
-
                 const userSnap = await getDocs(collection(db, 'user'));
                 const engineerData = userSnap.docs
                     .map(doc => ({ id: doc.id, ...doc.data() }))
                     .filter(u => u.role === 'Engineer');
                 setEngineers(engineerData);
-
                 // 2. Fetch the specific Task to Edit
                 const docRef = doc(db, 'task', id);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-
                     // Security: Only allow creator to edit
                     if (data.createdBy !== auth.currentUser?.uid) {
                         Alert.alert("Access Denied", "You can only edit tasks you created.");
                         router.back();
                         return;
                     }
-
                     // Fill States
                     setTaskName(data.name || "");
                     setDescription(data.taskDescription || "");
                     setCustomer(data.customer || "");
                     setContact(data.contactNo || "");
                     setLocation(data.location || "");
-                    setDueDate(data.dueDate.toDate());
-                    setExistingPDFUrl(data.attachedFile || "");
+                    if (data.startDate) setStartDate(data.startDate.toDate());
+                    if (data.dueDate) setDueDate(data.dueDate.toDate());
                     setProgress(data.progress ?? 0);
                     // Match Category
                     const matchedCat = catList.find(c => c.categoryName === data.categoryName);
                     setSelectedCategory(matchedCat || null);
+
+                    if (data.attachedFiles && Array.isArray(data.attachedFiles)) {
+                        setAttachments(data.attachedFiles);
+                    } else if (data.attachedFile) {
+                        setAttachments([{ name: "Legacy Attachment", url: data.attachedFile, type: "pdf" }]);
+                    } else {
+                        setAttachments([]);
+                    }
 
                     // Match Engineers
                     const matchedEngineers = engineerData.filter(eng =>
@@ -126,7 +113,6 @@ export default function EditTaskScreen() {
 
             // Prevent default behavior
             e.preventDefault();
-
             Alert.alert(
                 "Unsaved Changes",
                 "You have unsaved changes. Are you sure you want to leave?",
@@ -143,13 +129,20 @@ export default function EditTaskScreen() {
         return unsubscribe;
     }, [navigation]);
 
+    const handleStartDateChange = (event, selectedDate) => {
+        if (event.type === 'dismissed') return;
+        const current = selectedDate || startDate;
+        setStartDate(current);
+        if (Platform.OS === 'android' && event.type === 'set') {
+            DateTimePickerAndroid.open({ value: current, mode: 'time', is24Hour: true, onChange: (e, t) => t && setStartDate(t) });
+        }
+    };
+
     // --- FORM LOGIC (REUSED FROM NEW TASK) ---
     const handleDatePickerChange = (event, selectedDate) => {
         if (event.type === 'dismissed') return;
-
         const currentDate = selectedDate || dueDate;
         setDueDate(currentDate);
-
         // AUTO-OPEN TIME PICKER ON ANDROID
         if (Platform.OS === 'android' && pickerMode === 'date') {
             // ✅ FIX: Pass the newly selected 'currentDate' directly to the time picker
@@ -160,7 +153,6 @@ export default function EditTaskScreen() {
     // ✅ FIX: Add 'overrideDate' parameter so it doesn't rely on stale state
     const openPicker = (mode, overrideDate = null) => {
         Keyboard.dismiss();
-
         if (Platform.OS === 'android') {
             setPickerMode(mode); // Keep track of the mode
             DateTimePickerAndroid.open({
@@ -171,7 +163,6 @@ export default function EditTaskScreen() {
             });
             return;
         }
-
         // iOS Logic
         setPickerMode(mode);
         setShowDatePicker(true);
@@ -179,9 +170,14 @@ export default function EditTaskScreen() {
 
     const handleUploadPDF = async () => {
         try {
-            const result = await DocumentPicker.getDocumentAsync({ type: 'application/pdf' });
+            const result = await DocumentPicker.getDocumentAsync({
+                type: '*/*', // Allows PDFs, images, docs, etc.
+                multiple: true,
+                copyToCacheDirectory: true
+            });
+
             if (!result.canceled) {
-                setSelectedPDF(result.assets[0]);
+                setAttachments((prev) => [...prev, ...result.assets]);
                 isDirtyRef.current = true;
             }
         } catch (error) {
@@ -209,6 +205,30 @@ export default function EditTaskScreen() {
         setUpdating(true);
         try {
             const docRef = doc(db, 'task', id);
+            let finalAttachments = [];
+            // Loop through attachments to check what needs uploading
+            for (const file of attachments) {
+                // If it already has a web URL, it's an existing cloud file. Keep it.
+                if (file.url && file.url.startsWith('http')) {
+                    finalAttachments.push(file);
+                } else {
+                    // It's a new local asset selected via DocumentPicker. Upload it!
+                    const response = await fetch(file.uri);
+                    const blob = await response.blob();
+                    const storage = getStorage();
+                    const fileExtension = file.name.split('.').pop() || 'bin';
+                    const fileName = `attachments/${Date.now()}_${file.name}`;
+                    const storageRef = ref(storage, fileName);
+                    const snapshot = await uploadBytes(storageRef, blob);
+                    const firebaseUrl = await getDownloadURL(snapshot.ref);
+                    finalAttachments.push({
+                        name: file.name,
+                        url: firebaseUrl,
+                        type: fileExtension.toLowerCase()
+                    });
+                }
+            }
+
             const updatedData = {
                 name: taskName,
                 taskDescription: description,
@@ -217,12 +237,14 @@ export default function EditTaskScreen() {
                 contactNo: contact,
                 categoryName: selectedCategory.categoryName,
                 priority: selectedCategory.category,
+                startDate: Timestamp.fromDate(startDate),
                 dueDate: Timestamp.fromDate(dueDate),
                 status: assignedTo.length > 0 ? "Not Yet Started" : "Not Yet Assigned",
                 assignedTo: assignedTo.map(e => e.name),
                 assignedIds: assignedTo.map(e => e.id),
-                hasAttachment: !!selectedPDF || !!existingPDFUrl,
-                attachedFile: selectedPDF ? selectedPDF.uri : existingPDFUrl,
+                // Updated multi-file attachment structure
+                hasAttachment: finalAttachments.length > 0,
+                attachedFiles: finalAttachments,
                 progress: progress,
                 lastEditedAt: Timestamp.now(),
             };
@@ -232,6 +254,7 @@ export default function EditTaskScreen() {
             Alert.alert("Success", "Task updated successfully!");
             router.back();
         } catch (error) {
+            console.error(error);
             Alert.alert("Error", "Failed to update task.");
         } finally {
             setUpdating(false);
@@ -250,7 +273,6 @@ export default function EditTaskScreen() {
     return (
         <ScreenContainer style={styles.container}>
             <StatusBar barStyle="dark-content" />
-
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -315,16 +337,26 @@ export default function EditTaskScreen() {
 
                         <View style={styles.inputGroup}>
                             <Text style={styles.label}>Due Date & Time</Text>
-                            <View style={styles.row}>
-                                <TouchableOpacity style={[styles.inputWithIcon, { flex: 1, marginRight: 8 }]} onPress={() => openPicker('date')}>
+                            <View style={[styles.row, { marginBottom: 16 }]}>
+                                <TouchableOpacity style={[styles.inputWithIcon, { flex: 1, marginRight: 8 }]} onPress={() => Platform.OS === 'android' && DateTimePickerAndroid.open({ value: startDate, mode: 'date', onChange: handleStartDateChange })}>
                                     <Ionicons name="calendar-outline" size={18} color="#6389DA" />
-                                    <Text style={styles.flexInputText}>{dueDate.toLocaleDateString()}</Text>
+                                    <Text style={styles.flexInputText}>{startDate.toLocaleDateString('en-GB')}</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={[styles.inputWithIcon, { flex: 1, marginLeft: 8 }]} onPress={() => openPicker('time')}>
+                                <TouchableOpacity style={[styles.inputWithIcon, { flex: 1, marginLeft: 8 }]} onPress={() => Platform.OS === 'android' && DateTimePickerAndroid.open({ value: startDate, mode: 'time', is24Hour: true, onChange: handleStartDateChange })}>
                                     <Ionicons name="time-outline" size={18} color="#6389DA" />
-                                    <Text style={styles.flexInputText}>
-                                        {dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </Text>
+                                    <Text style={styles.flexInputText}>{startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <Text style={[styles.label, { fontSize: 13, color: '#64748B' }]}>Due Date & Time</Text>
+                            <View style={styles.row}>
+                                <TouchableOpacity style={[styles.inputWithIcon, { flex: 1, marginRight: 8 }]} onPress={() => Platform.OS === 'android' && DateTimePickerAndroid.open({ value: dueDate, mode: 'date', onChange: handleDueDateChange })}>
+                                    <Ionicons name="calendar-outline" size={18} color="#6389DA" />
+                                    <Text style={styles.flexInputText}>{dueDate.toLocaleDateString('en-GB')}</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.inputWithIcon, { flex: 1, marginLeft: 8 }]} onPress={() => Platform.OS === 'android' && DateTimePickerAndroid.open({ value: dueDate, mode: 'time', is24Hour: true, onChange: handleDueDateChange })}>
+                                    <Ionicons name="time-outline" size={18} color="#6389DA" />
+                                    <Text style={styles.flexInputText}>{dueDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -360,9 +392,40 @@ export default function EditTaskScreen() {
                     <TouchableOpacity style={styles.attachmentBtn} onPress={handleUploadPDF}>
                         <Ionicons name="document-attach-outline" size={20} color="#6389DA" />
                         <Text style={styles.attachmentBtnText}>
-                            {selectedPDF ? selectedPDF.name : (existingPDFUrl ? "Change Attachment" : "Attach Documentation (PDF)")}
+                            Attach More Documentation
                         </Text>
                     </TouchableOpacity>
+
+                    {/* List Selected/Existing Files */}
+                    {attachments.length > 0 && (
+                        <View style={{ marginTop: 12 }}>
+                            {attachments.map((file, index) => {
+                                const isImage = ['jpg', 'jpeg', 'png', 'webp'].includes(file.type?.toLowerCase() || file.name?.split('.').pop()?.toLowerCase());
+                                return (
+                                    <View key={index} style={styles.fileRow}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                                            <Ionicons
+                                                name={isImage ? "image-outline" : "document-text-outline"}
+                                                size={18}
+                                                color="#64748B"
+                                            />
+                                            <Text style={styles.fileNameText} numberOfLines={1}>
+                                                {file.name || "Attached File"}
+                                            </Text>
+                                        </View>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                setAttachments(prev => prev.filter((_, i) => i !== index));
+                                                isDirtyRef.current = true;
+                                            }}
+                                        >
+                                            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                                        </TouchableOpacity>
+                                    </View>
+                                );
+                            })}
+                        </View>
+                    )}
 
                     <View style={{ height: 40 }} />
                 </ScrollView>
@@ -454,66 +517,21 @@ const styles = StyleSheet.create({
     backButton: { padding: 4 },
     scrollContent: { padding: 16 },
     sectionHeader: { fontSize: 12, fontWeight: '700', color: '#94A3B8', marginBottom: 8, marginLeft: 4, letterSpacing: 1 },
-    card: {
-        backgroundColor: '#FFF',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 24,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 15,
-        elevation: 2,
-    },
+    card: { backgroundColor: '#FFF', borderRadius: 16, padding: 16, marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 15, elevation: 2},
     inputGroup: { marginBottom: 20 },
     labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     label: { fontSize: 14, fontWeight: '600', color: '#475569', marginBottom: 8 },
     charCount: { fontSize: 11, color: '#94A3B8' },
-    input: {
-        backgroundColor: '#F1F5F9',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        fontSize: 15,
-        color: '#1E293B'
-    },
+    input: { backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 15, color: '#1E293B' },
     textArea: { height: 100, textAlignVertical: 'top' },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between'
-    },
-    inputWithIcon: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F1F5F9',
-        borderRadius: 12,
-        paddingHorizontal: 10,
-        height: 48
-    },
+    row: { flexDirection: 'row', justifyContent: 'space-between' },
+    inputWithIcon: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 10, height: 48 },
     flexInput: { flex: 1, marginLeft: 6, fontSize: 14, color: '#1E293B' },
     flexInputText: { flex: 1, marginLeft: 8, fontSize: 15, color: '#1E293B' },
-    dropdown: {
-        backgroundColor: '#F1F5F9',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-    },
+    dropdown: { backgroundColor: '#F1F5F9', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     dropdownValue: { fontSize: 15, color: '#1E293B' },
     dropdownPlaceholder: { fontSize: 15, color: '#94A3B8' },
-    attachmentBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 16,
-        borderWidth: 1,
-        borderColor: '#6389DA',
-        borderStyle: 'dashed',
-        borderRadius: 16,
-        backgroundColor: '#F0F7FF'
-    },
+    attachmentBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, borderWidth: 1, borderColor: '#6389DA', borderStyle: 'dashed', borderRadius: 16, backgroundColor: '#F0F7FF' },
     attachmentBtnText: { marginLeft: 8, color: '#6389DA', fontWeight: '600' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
     modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
@@ -528,100 +546,27 @@ const styles = StyleSheet.create({
     statusText: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
     footer: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 20, backgroundColor: '#FFF', borderTopWidth: 1, borderTopColor: '#E2E8F0', alignItems: 'center', },
     resetButton: { flex: 1, height: 54, justifyContent: 'center', alignItems: 'center', marginRight: 12, },
-    resetButtonText: {
-        color: '#94A3B8',
-        fontSize: 16,
-        fontWeight: '600',
+    resetButtonText: { color: '#94A3B8', fontSize: 16, fontWeight: '600' },
+    saveButton: { flex: 2, height: 54, backgroundColor: '#6389DA', borderRadius: 14, justifyContent: 'center', alignItems: 'center', shadowColor: '#6389DA', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 5, },
+    saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700', },
+    iosPickerContainer: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 40, // Space for the bottom of the screen
     },
-    saveButton: {
-        flex: 2,
-        height: 54,
-        backgroundColor: '#6389DA',
-        borderRadius: 14,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowColor: '#6389DA',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 10,
-        elevation: 5,
-    },
-    saveButtonText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '700',
-    },
-    iosPickerContainer: {
-        backgroundColor: 'white',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        paddingBottom: 40, // Space for the bottom of the screen
-    },
-    iosPickerHeader: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#F1F5F9',
-    },
-    iosDoneText: {
-        color: '#6389DA',
-        fontWeight: '700',
-        fontSize: 16,
-    },
-    selectedItem: {
-        backgroundColor: '#F0F7FF', // Light blue tint
-        borderColor: '#6389DA',
-        borderLeftWidth: 4,
-    },
+    iosPickerHeader: { flexDirection: 'row', justifyContent: 'flex-end', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', },
+    iosDoneText: { color: '#6389DA', fontWeight: '700', fontSize: 16, },
+    selectedItem: { backgroundColor: '#F0F7FF', // Light blue tint
+        borderColor: '#6389DA', borderLeftWidth: 4, },
     // --- Modal Specific Styles ---
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 20,
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, },
+    modalScrollView: { marginBottom: 10, },
+    engineerCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 12, backgroundColor: '#F8FAFC', marginBottom: 12, borderWidth: 1, borderColor: '#F1F5F9', },
+    selectedEngineerCard: { backgroundColor: '#F0F7FF', borderColor: '#6389DA', borderLeftWidth: 4, },
+    engineerInfo: { flex: 1, // This prevents the text from pushing icons off screen
     },
-    modalScrollView: {
-        marginBottom: 10,
+    engineerStatus: { marginLeft: 12, alignItems: 'flex-end', },
+    modalFooter: { paddingTop: 12, paddingBottom: Platform.OS === 'ios' ? 20 : 0, // Extra space for iPhone home bar
     },
-    engineerCard: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-        borderRadius: 12,
-        backgroundColor: '#F8FAFC',
-        marginBottom: 12,
-        borderWidth: 1,
-        borderColor: '#F1F5F9',
-    },
-    selectedEngineerCard: {
-        backgroundColor: '#F0F7FF',
-        borderColor: '#6389DA',
-        // Adds that nice blue accent line on the left
-        borderLeftWidth: 4,
-    },
-    engineerInfo: {
-        flex: 1, // This prevents the text from pushing icons off screen
-    },
-    engineerStatus: {
-        marginLeft: 12,
-        alignItems: 'flex-end',
-    },
-    modalFooter: {
-        paddingTop: 12,
-        paddingBottom: Platform.OS === 'ios' ? 20 : 0, // Extra space for iPhone home bar
-    },
-    confirmButton: {
-        backgroundColor: '#6389DA',
-        borderRadius: 14,
-        height: 54,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    confirmButtonText: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: '700',
-    },
+    confirmButton: { backgroundColor: '#6389DA', borderRadius: 14, height: 54, justifyContent: 'center', alignItems: 'center', },
+    confirmButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700', },
+    fileRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#F1F5F9', padding: 12, borderRadius: 12, marginBottom: 8, marginTop: 4, },
+    fileNameText: { marginLeft: 8, fontSize: 14, color: '#334155',  flex: 1, },
 });
