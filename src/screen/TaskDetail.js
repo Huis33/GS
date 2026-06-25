@@ -130,6 +130,9 @@ export default function TaskDetailsScreen() {
                 fileExtension = 'jpg';
             } else if (cleanUrl.includes('.webp') || lowerName.includes('.webp')) {
                 fileExtension = 'webp';
+            } else if (lowerType.includes('image') || lowerName.includes('image') || cleanUrl.includes('image') || lowerName.includes('photo') || cleanUrl.includes('photo')) {
+                // If we know it's an image but lack a specific extension, default to png instead of falling through to pdf
+                fileExtension = 'png';
             } else {
                 // 3. Fallback to normal parsing if it's not an obvious image
                 const decodedUrl = decodeURIComponent(cleanUrl);
