@@ -1,14 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { auth, db } from '../../firebaseConfig';
 
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
     const [userData, setUserData] = useState(null);
-    const [isLoading, setIsLoading] = useState(true); // ✅ Track if auth is still checking
+    const [isLoading, setIsLoading] = useState(true);
+    // Track whether the first onAuthStateChanged callback is the initial app-load check
+    const isInitialAuthCheck = useRef(true);
 
     useEffect(() => {
         let unsubscribe = null;
@@ -19,32 +21,35 @@ export const UserProvider = ({ children }) => {
             const rememberMe = await AsyncStorage.getItem('rememberMe');
             console.log('[UserProvider] rememberMe =', rememberMe, '| auth.currentUser =', auth.currentUser?.uid || null);
 
+            // If auth.currentUser is already available and rememberMe is off, sign out early
             if (auth.currentUser && rememberMe !== 'true') {
-                // User didn't ask to be remembered — sign them out first
-                console.log('[UserProvider] Signing out — rememberMe is not true');
+                console.log('[UserProvider] Signing out early — rememberMe is not true');
                 await signOut(auth);
             }
 
             if (!isMounted) return;
 
-            // 2. Now subscribe to auth state changes normally
+            // 2. Subscribe to auth state changes
             unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
                 if (!isMounted) return;
                 setIsLoading(true);
-                console.log('[UserProvider] onAuthStateChanged fired. user =', firebaseUser?.uid || null);
+                console.log('[UserProvider] onAuthStateChanged fired. user =', firebaseUser?.uid || null, '| isInitialCheck =', isInitialAuthCheck.current);
 
                 if (firebaseUser) {
-                    // Re-check rememberMe here — the setup() check may have missed
-                    // because auth.currentUser was null before Firebase restored the session
-                    const rememberMeNow = await AsyncStorage.getItem('rememberMe');
-                    console.log('[UserProvider] rememberMe (in listener) =', rememberMeNow);
+                    // Only check rememberMe on initial app load (restored session).
+                    // Live logins from LoginScreen should NOT be blocked — the user
+                    // intentionally logged in, they just don't want to be remembered next time.
+                    if (isInitialAuthCheck.current) {
+                        isInitialAuthCheck.current = false;
+                        const rememberMeNow = await AsyncStorage.getItem('rememberMe');
+                        console.log('[UserProvider] Initial auth check — rememberMe =', rememberMeNow);
 
-                    if (rememberMeNow !== 'true') {
-                        // User logged out but Firebase restored session from persistence
-                        console.log('[UserProvider] rememberMe is not true — signing out restored session');
-                        await signOut(auth);
-                        // signOut will trigger this listener again with null user
-                        return;
+                        if (rememberMeNow !== 'true') {
+                            console.log('[UserProvider] Not remembered — signing out restored session');
+                            await signOut(auth);
+                            // signOut triggers this listener again with null user
+                            return;
+                        }
                     }
 
                     try {
@@ -63,6 +68,8 @@ export const UserProvider = ({ children }) => {
                         setUserData(null);
                     }
                 } else {
+                    // Mark initial check as done (if it was a null-user first callback)
+                    isInitialAuthCheck.current = false;
                     console.log('[UserProvider] No user — setting userData to null');
                     setUserData(null);
                 }
@@ -85,4 +92,4 @@ export const UserProvider = ({ children }) => {
     );
 };
 
-export const useUser = () => useContext(UserContext);
+export const useUser = () => useContext(UserContext);
