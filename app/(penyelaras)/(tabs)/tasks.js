@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -25,49 +26,70 @@ const PRIORITY_CONFIG = {
 export default function TasksPage() {
     const [tasks, setTasks] = useState([]);
     const [activeTab, setActiveTab] = useState('To Be Done');
-    const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
-    // 1. Update the useEffect to remove orderBy from the Firestore layer
     useEffect(() => {
-        const currentUser = auth.currentUser;
-        if (!currentUser) { setLoading(false); return; }
+        // 🚀 FIX: Use an auth state listener instead of checking currentUser once
+        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+            if (!user) {
+                setLoading(false);
+                return;
+            }
 
-        // We remove orderBy here so Firestore doesn't drop tasks missing specific timestamps
-        const q = query(
-            collection(db, 'task'),
-            where('createdBy', '==', currentUser.uid)
-        );
+            const q = query(
+                collection(db, 'task'),
+                where('createdBy', '==', user.uid),
+                orderBy('createdDate', 'desc')
+            );
 
-        return onSnapshot(q, (snapshot) => {
-            const tasksList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setTasks(tasksList);
-            setLoading(false);
-        }, (error) => {
-            console.error("Firestore snapshot error:", error);
-            setLoading(false);
+            const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+                const tasksList = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+                setTasks(tasksList);
+                setLoading(false);
+            }, (error) => {
+                console.error("Firestore Error:", error);
+                setLoading(false);
+            });
+
+            return () => unsubscribeSnapshot();
         });
+
+        return () => unsubscribeAuth();
     }, []);
 
-    // 2. Handle the sorting safely in JS inside your useMemo hook
+    // 🚀 CRITICAL FILTER FIX: Ensure useMemo is completely outside the useEffect and not duplicated
     const displayedTasks = useMemo(() => {
-        // First, filter the tasks by active tab and search query
-        const filtered = tasks.filter(task => {
+        return tasks.filter(task => {
             const matchesTab = activeTab === 'Done' ? task.status === 'Done' : task.status !== 'Done';
             const matchesSearch = task.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 task.taskDescription?.toLowerCase().includes(searchQuery.toLowerCase());
             return matchesTab && matchesSearch;
         });
-
-        // Second, sort them by createdDate descending safely
-        return filtered.sort((a, b) => {
-            const dateA = a.createdDate?.toDate ? a.createdDate.toDate() : new Date(a.createdDate || 0);
-            const dateB = b.createdDate?.toDate ? b.createdDate.toDate() : new Date(b.createdDate || 0);
-            return dateB - dateA; // Newest first
-        });
     }, [tasks, activeTab, searchQuery]);
+
+    // // 2. Handle the sorting safely in JS inside your useMemo hook
+    // const displayedTasks = useMemo(() => {
+    //     // First, filter the tasks by active tab and search query
+    //     const filtered = tasks.filter(task => {
+    //         const matchesTab = activeTab === 'Done' ? task.status === 'Done' : task.status !== 'Done';
+    //         const matchesSearch = task.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    //             task.taskDescription?.toLowerCase().includes(searchQuery.toLowerCase());
+    //         return matchesTab && matchesSearch;
+    //     });
+
+    //     // Second, sort them by createdDate descending safely
+    //     return filtered.sort((a, b) => {
+    //         const dateA = a.createdDate?.toDate ? a.createdDate.toDate() : new Date(a.createdDate || 0);
+    //         const dateB = b.createdDate?.toDate ? b.createdDate.toDate() : new Date(b.createdDate || 0);
+    //         return dateB - dateA; // Newest first
+    //     });
+    // }, [tasks, activeTab, searchQuery]);
 
     const getProgressWidth = (item) => {
         if (!item?.status) return '0%';

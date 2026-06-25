@@ -25,11 +25,12 @@ export default function TaskDetailsScreen() {
     const [task, setTask] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const isOwner = auth.currentUser?.uid === task?.createdBy;
+    // 🚀 FIX: Use optional chaining and trim/toLowerCase to ensure strict matching
+    const isOwner = auth.currentUser?.uid && task?.createdBy &&
+        auth.currentUser.uid.trim() === task.createdBy.trim();
+
     const canExport = true;
-    // ADD THIS: Check if the task is 'Done'
     const isTaskDone = task?.status === 'Done';
-    // Define who can edit (Owner, but NOT if the task is Done)
     const canEdit = isOwner && !isTaskDone;
 
     // --- HELPERS ---
